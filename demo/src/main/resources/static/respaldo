@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Red Neuronal MLP - WEKA Analyzer</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    :root {
+        --primary: #6366f1;
+        --primary-light: #8183f4;
+        --secondary: #4f46e5;
+        --accent: #8b5cf6;
+        --dark: #1e1e2e;
+        --light: #f8fafc;
+        --lighter: #ffffff;
+        --success: #10b981;
+        --error: #ef4444;
+        --warning: #f59e0b;
+        --gray: #94a3b8;
+        --gray-light: #e2e8f0;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+        color: var(--dark);
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    /* Header Styles */
+    header {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        padding: 1rem 2rem;
+        box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
+    }
+
+    .nav-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 700;
+        color: white;
+        font-size: 1.25rem;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+    }
+
+    .nav-link {
+        color: rgba(255, 255, 255, 0.9);
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .nav-link:hover {
+        color: white;
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Main Content Styles */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(12px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), 
+                  inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+        padding: 2.5rem;
+        margin: 2rem auto;
+        max-width: 1200px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    }
+
+    .glass-panel:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12), 
+                  inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    }
+
+    /* Form Controls */
+    .controls-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--dark);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    input[type="file"],
+    input[type="number"],
+    input[type="text"],
+    select {
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--gray-light);
+        border-radius: 12px;
+        font-size: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.8);
+    }
+
+    input:focus, select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+    }
+
+    button {
+        padding: 1rem 2rem;
+        background: linear-gradient(135deg, var(--secondary), var(--primary));
+        color: white;
+        font-weight: 600;
+        border: none;
+        border-radius: 14px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 6px 15px rgba(79, 70, 229, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    button:hover {
+        background: linear-gradient(135deg, var(--secondary), var(--primary-light));
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+    }
+
+    /* Neural Network Visualization */
+    #network {
+        width: 100%;
+        height: 600px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 20px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+        margin: 1rem 0;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    .neuron {
+        stroke: var(--dark);
+        stroke-width: 1.5px;
+        transition: all 0.3s ease;
+    }
+
+    .input { fill: var(--success); }
+    .hidden { fill: var(--error); }
+    .output { fill: var(--warning); }
+
+    .link {
+        stroke: var(--gray);
+        stroke-width: 1px;
+        opacity: 0.6;
+        transition: all 0.3s ease;
+    }
+
+    .nlabel {
+        fill: white;
+        font-size: 11px;
+        text-anchor: middle;
+        dominant-baseline: central;
+        font-weight: 500;
+    }
+
+    /* Results Panels */
+    .info-panel {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 20px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--gray-light);
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        background: rgba(255, 255, 255, 0.6);
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--gray-light);
+    }
+
+    .info-item strong {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--secondary);
+    }
+
+    /* Metrics Section */
+    .metrics-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+
+    .metrics-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .metrics-table th, .metrics-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 2px solid var(--gray-light);
+    }
+
+    .metrics-table th {
+        background: var(--primary);
+        color: white;
+        font-weight: 600;
+    }
+
+    /* Confusion Matrix */
+    .confusion-matrix {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--gray-light);
+    }
+
+    .confusion-matrix table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    .confusion-matrix th, .confusion-matrix td {
+        padding: 0.75rem;
+        text-align: center;
+        border: 1px solid var(--gray-light);
+    }
+
+    .confusion-matrix th {
+        background: var(--primary);
+        color: white;
+        font-weight: 600;
+    }
+
+    .confusion-matrix td {
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Report Section */
+    .report-section {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--gray-light);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+        overflow-x: auto;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .nav-container {
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .glass-panel {
+            padding: 1.5rem;
+            margin: 1.5rem;
+            border-radius: 16px;
+        }
+
+        .controls-container {
+            grid-template-columns: 1fr;
+        }
+
+        #network {
+            height: 400px;
+        }
+
+        .metrics-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+</head>
+<body>
+  <header>
+            <nav class="nav-container">
+                <a href="#" class="logo">
+                    <i class="fas fa-chart-line logo-icon"></i>
+                    <span>404 not found</span>
+                </a>
+                <div class="nav-links">
+                    <a href="/index.html" class="nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Inicio</span>
+                    </a>
+                    <!--
+                    <a href="/weka1.html" class="nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Análisis</span>
+                    </a>
+                    -->
+                    <a href="/j48-tree.html" class="nav-link">
+                        <i class="fas fa-tree"></i>
+                        <span>J48</span>
+                    </a>
+                    <a href="/kmeans-chart.html" class="nav-link">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>K-Means</span>
+                    </a>
+                    <a href="/mlp-result-chart.html" class="nav-link active">
+                        <i class="fas fa-brain"></i>
+                        <span>MLP</span>
+                    </a>
+                    <!--
+                    <a href="/UNION.html" class="nav-link">
+                        <i class="fas fa-database"></i>
+                        <span>UNION</span>
+                    </a>
+                    -->
+                    <a href="/Preparacion.html" class="nav-link">
+                        <i class="fas fa-database"></i>
+                        <span>Preparacion</span>
+                    </a>
+                </div>
+            </nav>
+        </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Configuración de Red Neuronal MLP</h2>
+      <p>Sube un archivo de datos y configura los parámetros para entrenar y visualizar la red neuronal.</p>
+      
+      <div class="controls-container">
+        <div class="form-group">
+          <label for="fileInput">Archivo de datos (.csv o .arff)</label>
+          <input type="file" id="fileInput" accept=".csv,.arff">
+        </div>
+        
+        <div class="form-group">
+          <label for="hiddenLayers">Estructura capas ocultas (ej: "8" o "5,3")</label>
+          <input type="text" id="hiddenLayers" value="8">
+        </div>
+        
+        <div class="form-group">
+          <label for="epochCount">Épocas de entrenamiento</label>
+          <input type="number" id="epochCount" value="500" min="1" max="1000">
+        </div>
+        
+        <div class="form-group">
+          <label for="learningRate">Tasa de aprendizaje</label>
+          <input type="number" id="learningRate" step="0.01" value="0.3" min="0.01" max="1">
+        </div>
+        
+        <div class="form-group">
+          <label for="momentum">Momentum</label>
+          <input type="number" id="momentum" step="0.01" value="0.2" min="0" max="1">
+        </div>
+        
+        <div class="form-group">
+          <label for="validationMethod">Método de validación</label>
+          <select id="validationMethod">
+            <option value="train">Conjunto de entrenamiento</option>
+            <option value="cross-validation">Validación cruzada (10-fold)</option>
+          </select>
+        </div>
+      </div>
+      
+      <button onclick="procesarRed()">Entrenar Red Neuronal</button>
+    </div>
+    
+    <div class="card">
+      <h3>Estructura de la Red</h3>
+      <svg id="network" width="1000" height="600"></svg>
+    </div>
+    
+    <div class="info-panel">
+      <h3>Información del Modelo</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <strong>Learning rate</strong>
+          <span id="lr">-</span>
+        </div>
+        <div class="info-item">
+          <strong>Momentum</strong>
+          <span id="momentum">-</span>
+        </div>
+        <div class="info-item">
+          <strong>Épocas</strong>
+          <span id="epochs">-</span>
+        </div>
+        <div class="info-item">
+          <strong>Error final</strong>
+          <span id="error">-</span>
+        </div>
+        <div class="info-item">
+          <strong>Precisión</strong>
+          <span id="accuracy">-</span>
+        </div>
+        <div class="info-item">
+          <strong>Kappa</strong>
+          <span id="kappa">-</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h3>Métricas de Evaluación</h3>
+      <div class="metrics-container">
+        <div>
+          <h4>Métricas Generales</h4>
+          <table class="metrics-table">
+            <tr>
+              <th>Métrica</th>
+              <th>Valor</th>
+            </tr>
+            <tr>
+              <td>Instancias correctas</td>
+              <td id="correct">-</td>
+            </tr>
+            <tr>
+              <td>Instancias incorrectas</td>
+              <td id="incorrect">-</td>
+            </tr>
+            <tr>
+              <td>Error absoluto medio</td>
+              <td id="mae">-</td>
+            </tr>
+            <tr>
+              <td>Error cuadrático medio</td>
+              <td id="rmse">-</td>
+            </tr>
+            <tr>
+              <td>Error relativo absoluto</td>
+              <td id="rae">-</td>
+            </tr>
+            <tr>
+              <td>Error relativo cuadrático</td>
+              <td id="rse">-</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div>
+          <h4>Matriz de Confusión</h4>
+          <div id="confusionMatrixContainer"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h3>Métricas por Clase</h3>
+      <table class="metrics-table" id="classMetricsTable">
+        <thead>
+          <tr>
+            <th>Clase</th>
+            <th>Precisión</th>
+            <th>Recall</th>
+            <th>F-Measure</th>
+            <th>ROC</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    
+    <div class="card">
+      <h3>Informe Completo</h3>
+      <div class="report-section" id="summaryReport"></div>
+      <div class="report-section" id="classDetailsReport"></div>
+      <div class="report-section" id="confusionMatrixReport"></div>
+    </div>
+  </div>
+
+  <script>
+    async function procesarRed() {
+      const fileInput = document.getElementById("fileInput");
+      const hiddenLayers = document.getElementById("hiddenLayers").value || "8";
+      const epochCount = parseInt(document.getElementById("epochCount").value) || 500;
+      const learningRate = parseFloat(document.getElementById("learningRate").value) || 0.3;
+      const momentum = parseFloat(document.getElementById("momentum").value) || 0.2;
+      const validationMethod = document.getElementById("validationMethod").value;
+      const file = fileInput.files[0];
+      
+      if (!file) return alert("Selecciona un archivo primero");
+
+      // Mostrar loader
+      const originalButtonText = document.querySelector("button").innerText;
+      document.querySelector("button").innerText = "Entrenando...";
+      document.querySelector("button").disabled = true;
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("hiddenLayers", hiddenLayers);
+      formData.append("trainingTime", epochCount);
+      formData.append("learningRate", learningRate);
+      formData.append("momentum", momentum);
+      formData.append("validation", validationMethod);
+
+      try {
+        const response = await fetch("http://localhost:8080/api/analyze/mlp-structure", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await response.json();
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        // Actualizar información básica
+        document.getElementById("lr").innerText = data.model_info.learning_rate.toFixed(4);
+        document.getElementById("momentum").innerText = data.model_info.momentum.toFixed(4);
+        document.getElementById("epochs").innerText = data.model_info.epochs;
+        document.getElementById("error").innerText = data.evaluation_metrics.error_rate.toFixed(4);
+        document.getElementById("accuracy").innerText = (1 - data.evaluation_metrics.error_rate).toFixed(4);
+        document.getElementById("kappa").innerText = data.evaluation_metrics.kappa.toFixed(4);
+        
+        // Métricas generales
+        document.getElementById("correct").innerText = data.evaluation_metrics.correct;
+        document.getElementById("incorrect").innerText = data.evaluation_metrics.incorrect;
+        document.getElementById("mae").innerText = data.evaluation_metrics.mean_absolute_error.toFixed(4);
+        document.getElementById("rmse").innerText = data.evaluation_metrics.root_mean_squared_error.toFixed(4);
+        document.getElementById("rae").innerText = (data.evaluation_metrics.relative_absolute_error * 100).toFixed(2) + "%";
+        document.getElementById("rse").innerText = (data.evaluation_metrics.root_relative_squared_error * 100).toFixed(2) + "%";
+        
+        // Matriz de confusión
+        renderConfusionMatrix(data.evaluation_metrics.confusion_matrix, data.structure.outputs);
+        
+        // Métricas por clase
+        renderClassMetrics(data.evaluation_metrics.class_details);
+        
+        // Informes textuales
+        document.getElementById("summaryReport").innerText = data.summary;
+        document.getElementById("classDetailsReport").innerText = data.class_details_report;
+        document.getElementById("confusionMatrixReport").innerText = data.confusion_matrix_report;
+        
+        // Renderizar la red neuronal
+        const hiddenCount = hiddenLayers.split(",")[0]; // Tomamos el primer valor para visualización
+        renderMLP(data.structure.inputs, parseInt(hiddenCount), data.structure.outputs);
+        
+        // Lanzar animación simulada
+        iniciarAnimacionMLP(epochCount, 400);
+        
+      } catch (error) {
+        alert("Error: " + error.message);
+        console.error(error);
+      } finally {
+        // Restaurar botón
+        document.querySelector("button").innerText = originalButtonText;
+        document.querySelector("button").disabled = false;
+      }
+    }
+
+    function renderMLP(inputs, hiddenCount, outputs) {
+      const svg = d3.select("#network");
+      svg.selectAll("*").remove();
+      const width = +svg.attr("width");
+      const height = +svg.attr("height");
+
+      const layerX = [100, 400, 700];
+      const maxLayerSize = Math.max(inputs.length, hiddenCount, outputs.length);
+      const verticalSpacing = height / (maxLayerSize + 1);
+
+      function computePositions(count, layerIndex) {
+        const x = layerX[layerIndex];
+        const startY = (height - (count - 1) * verticalSpacing) / 2;
+        return Array.from({ length: count }, (_, i) => ({
+          x: x,
+          y: startY + i * verticalSpacing
+        }));
+      }
+
+      const inputNodes = computePositions(inputs.length, 0);
+      const hiddenNodes = computePositions(hiddenCount, 1);
+      const outputNodes = computePositions(outputs.length, 2);
+
+      function connect(fromLayer, toLayer) {
+        fromLayer.forEach(from => {
+          toLayer.forEach(to => {
+            d3.select("#network")
+              .append("line")
+              .attr("class", "link")
+              .attr("x1", from.x + 15)
+              .attr("y1", from.y)
+              .attr("x2", to.x - 15)
+              .attr("y2", to.y);
+          });
+        });
+      }
+
+      function drawNodes(nodes, labels, clase) {
+        d3.select("#network").selectAll("circle." + clase)
+          .data(nodes)
+          .enter()
+          .append("circle")
+          .attr("class", "neuron " + clase)
+          .attr("cx", d => d.x)
+          .attr("cy", d => d.y)
+          .attr("r", 18);
+
+        d3.select("#network").selectAll("text." + clase)
+          .data(nodes)
+          .enter()
+          .append("text")
+          .attr("class", "nlabel")
+          .attr("x", d => d.x)
+          .attr("y", d => d.y)
+          .text((_, i) => labels[i].length > 10 ? labels[i].slice(0, 9) + "…" : labels[i]);
+      }
+
+      connect(inputNodes, hiddenNodes);
+      connect(hiddenNodes, outputNodes);
+
+      drawNodes(inputNodes, inputs, "input");
+      drawNodes(hiddenNodes, Array(hiddenCount).fill(""), "hidden");
+      drawNodes(outputNodes, outputs, "output");
+
+      // Etiquetas flotantes al lado de nodos de salida
+      d3.select("#network").selectAll(".output-label")
+        .data(outputNodes)
+        .enter()
+        .append("rect")
+        .attr("x", d => d.x + 25)
+        .attr("y", d => d.y - 12)
+        .attr("width", 60)
+        .attr("height", 24)
+        .attr("fill", "gold")
+        .attr("stroke", "black");
+
+      d3.select("#network").selectAll(".output-label-text")
+        .data(outputNodes)
+        .enter()
+        .append("text")
+        .attr("x", d => d.x + 55)
+        .attr("y", d => d.y + 4)
+        .attr("text-anchor", "middle")
+        .attr("fill", "black")
+        .attr("font-size", "12px")
+        .text((_, i) => outputs[i]);
+    }
+
+    function renderConfusionMatrix(matrix, classLabels) {
+      const container = document.getElementById("confusionMatrixContainer");
+      container.innerHTML = "";
+      
+      const table = document.createElement("table");
+      table.className = "confusion-matrix";
+      
+      // Encabezados
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      
+      // Celda vacía en la esquina
+      const emptyHeader = document.createElement("th");
+      emptyHeader.innerHTML = "Actual →<br>Predicho ↓";
+      headerRow.appendChild(emptyHeader);
+      
+      // Encabezados de clase
+      classLabels.forEach(label => {
+        const th = document.createElement("th");
+        th.textContent = label;
+        headerRow.appendChild(th);
+      });
+      
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      
+      // Cuerpo de la tabla
+      const tbody = document.createElement("tbody");
+      
+      matrix.forEach((row, i) => {
+        const tr = document.createElement("tr");
+        
+        // Etiqueta de clase
+        const classHeader = document.createElement("th");
+        classHeader.textContent = classLabels[i];
+        tr.appendChild(classHeader);
+        
+        // Celdas de datos
+        row.forEach(cell => {
+          const td = document.createElement("td");
+          td.textContent = cell;
+          tr.appendChild(td);
+        });
+        
+        tbody.appendChild(tr);
+      });
+      
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
+    function renderClassMetrics(classDetails) {
+      const tbody = document.querySelector("#classMetricsTable tbody");
+      tbody.innerHTML = "";
+      
+      classDetails.forEach(cls => {
+        const tr = document.createElement("tr");
+        
+        const tdClass = document.createElement("td");
+        tdClass.textContent = cls.class_name;
+        tr.appendChild(tdClass);
+        
+        const tdPrecision = document.createElement("td");
+        tdPrecision.textContent = cls.precision.toFixed(4);
+        tr.appendChild(tdPrecision);
+        
+        const tdRecall = document.createElement("td");
+        tdRecall.textContent = cls.recall.toFixed(4);
+        tr.appendChild(tdRecall);
+        
+        const tdFMeasure = document.createElement("td");
+        tdFMeasure.textContent = cls.f_measure.toFixed(4);
+        tr.appendChild(tdFMeasure);
+        
+        const tdRoc = document.createElement("td");
+        tdRoc.textContent = cls.area_under_roc.toFixed(4);
+        tr.appendChild(tdRoc);
+        
+        tbody.appendChild(tr);
+      });
+    }
+
+    function iniciarAnimacionMLP(epocas = 50, intervalo = 300) {
+      let epocaActual = 0;
+      const epochEl = document.getElementById("epochs");
+      const errorEl = document.getElementById("error");
+      
+      // Tomamos el valor inicial de error del modelo real
+      let errorActual = parseFloat(errorEl.innerText) || 0.2;
+
+      const links = d3.selectAll(".link").nodes();
+      const hiddenNeurons = d3.selectAll("circle.hidden").nodes();
+      const outputNeurons = d3.selectAll("circle.output").nodes();
+
+      const anim = setInterval(() => {
+        if (epocaActual >= epocas) {
+          clearInterval(anim);
+          console.log("Animación de entrenamiento terminada");
+          return;
+        }
+
+        epocaActual += 1;
+        errorActual *= 0.96; // Simulamos reducción de error
+
+        // Actualizamos solo la animación, no los valores reales
+        const rLink = links[Math.floor(Math.random() * links.length)];
+        const rHid = hiddenNeurons[Math.floor(Math.random() * hiddenNeurons.length)];
+        const rOut = outputNeurons[Math.floor(Math.random() * outputNeurons.length)];
+
+        d3.select(rLink).transition().duration(intervalo / 2)
+          .style("stroke", "orange").style("stroke-width", 2)
+          .transition().duration(intervalo / 2)
+          .style("stroke", "black").style("stroke-width", 1);
+
+        d3.select(rHid).transition().duration(intervalo / 2)
+          .style("fill", "#e74c3c")
+          .transition().duration(intervalo / 2)
+          .style("fill", "red");
+
+        d3.select(rOut).transition().duration(intervalo / 2)
+          .style("fill", "#f1c40f")
+          .transition().duration(intervalo / 2)
+          .style("fill", "gold");
+
+      }, intervalo);
+    }
+  </script>
+</body>
+</html>

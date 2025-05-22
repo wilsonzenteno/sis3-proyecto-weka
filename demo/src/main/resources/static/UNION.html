@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEKA Analyzer | Dashboard Completo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://unpkg.com/d3-graphviz@5.1.0/build/d3-graphviz.min.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #8183f4;
+            --secondary: #4f46e5;
+            --accent: #8b5cf6;
+            --dark: #1e1e2e;
+            --darker: #12121a;
+            --light: #f8fafc;
+            --lighter: #ffffff;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --gray: #94a3b8;
+            --gray-light: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            min-height: 100vh;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 1.2rem 2rem;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: white;
+        }
+
+        .logo-icon {
+            font-size: 1.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .nav-link i {
+            font-size: 1.1rem;
+        }
+
+        .nav-link:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .tab-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            padding: 0.8rem 1.5rem;
+            background: rgba(255, 255, 255, 0.7);
+            border: none;
+            border-radius: 10px 10px 0 0;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 0 10px 10px 10px;
+            padding: 2rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            animation: fadeIn 0.4s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), 
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        }
+
+        .glass-panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12), 
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+        }
+
+        .section-title {
+            color: var(--dark);
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            position: relative;
+            display: inline-block;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 50px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 2px;
+        }
+
+        .file-upload {
+            position: relative;
+            margin: 1.5rem 0;
+        }
+
+        .file-upload input[type="file"] {
+            opacity: 0;
+            position: absolute;
+            width: 1px;
+            height: 1px;
+        }
+
+        .upload-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.8rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 15px rgba(99, 102, 241, 0.3);
+            font-weight: 600;
+            border: none;
+            font-size: 0.95rem;
+        }
+
+        .upload-label:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+            background: linear-gradient(135deg, var(--primary-light), var(--accent));
+        }
+
+        .file-info {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .file-info i {
+            color: var(--primary);
+        }
+
+        .select-group {
+            margin: 1.5rem 0;
+        }
+
+        .select-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.9rem;
+        }
+
+        .styled-select {
+            width: 100%;
+            padding: 0.9rem 1.2rem;
+            border: 2px solid var(--gray-light);
+            border-radius: 10px;
+            background: white;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1.2rem center;
+            background-size: 1.1em;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            color: var(--dark);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+        }
+
+        .styled-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .action-btn {
+            padding: 0.9rem 1.5rem;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+            flex: 1;
+        }
+
+        .action-btn:hover {
+            background: linear-gradient(135deg, var(--secondary), var(--primary-light));
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35);
+        }
+
+        .action-btn.secondary {
+            background: white;
+            color: var(--dark);
+            border: 1px solid var(--gray-light);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .action-btn.secondary:hover {
+            background: var(--gray-light);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Visualización específica para cada tab */
+        #j48-graph {
+            border: 1px solid var(--gray-light);
+            width: 100%;
+            height: 600px;
+            overflow: auto;
+            background: white;
+            border-radius: 10px;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        #kmeans-chart {
+            margin-top: 1.5rem;
+            width: 100%;
+            height: 500px;
+            position: relative;
+        }
+
+        #network {
+            width: 100%;
+            height: 500px;
+            background: white;
+            border-radius: 10px;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Estilos para la red neuronal */
+        .neuron {
+            stroke: #333;
+            stroke-width: 1.5px;
+            transition: all 0.3s ease;
+        }
+
+        .input  { fill: #10b981; }
+        .hidden { fill: var(--primary); }
+        .output { fill: #f59e0b; }
+
+        .link {
+            stroke: var(--gray);
+            stroke-width: 1px;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+
+        .nlabel {
+            fill: white;
+            font-size: 11px;
+            text-anchor: middle;
+            dominant-baseline: central;
+            pointer-events: none;
+            font-weight: 600;
+        }
+
+        .info-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .info-panel h3 {
+            color: var(--dark);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-panel ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-panel li {
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            max-width: 300px;
+        }
+
+        .info-panel span {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            transition: opacity 0.3s ease;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(99, 102, 241, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1.5rem;
+        }
+
+        .loading-text {
+            color: var(--dark);
+            font-weight: 500;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .tab-container {
+                padding: 0 1rem;
+            }
+            
+            .tabs {
+                gap: 0.3rem;
+            }
+
+            .tab-btn {
+                padding: 0.7rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .glass-panel {
+                padding: 1.5rem;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            #j48-graph, #kmeans-chart, #network {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="nav-container">
+            <div class="logo">
+                <i class="fas fa-chart-line logo-icon"></i>
+                <span>WEKA Analyzer</span>
+            </div>
+            <div class="nav-links">
+                <a href="/index.html" class="nav-link">
+                    <i class="fas fa-home"></i>
+                    <span>Inicio</span>
+                </a>
+                <a href="/weka1.html" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Análisis</span>
+                </a>
+                <a href="/j48-tree.html" class="nav-link active">
+                    <i class="fas fa-tree"></i>
+                    <span>J48</span>
+                </a>
+                <a href="/kmeans-chart.html" class="nav-link">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>K-Means</span>
+                </a>
+                <a href="/mlp-result-chart.html" class="nav-link">
+                    <i class="fas fa-brain"></i>
+                    <span>MLP</span>
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <div class="tab-container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="openTab('j48')">
+                <i class="fas fa-tree"></i> Árbol J48
+            </button>
+            <button class="tab-btn" onclick="openTab('kmeans')">
+                <i class="fas fa-project-diagram"></i> K-Means
+            </button>
+            <button class="tab-btn" onclick="openTab('mlp')">
+                <i class="fas fa-brain"></i> Red Neuronal
+            </button>
+        </div>
+
+        <!-- Tab Árbol J48 -->
+        <div id="j48" class="tab-content active">
+            <div class="glass-panel">
+                <h2 class="section-title">Árbol de Decisión J48</h2>
+                <p>Visualiza árboles de decisión generados por WEKA en formato DOT</p>
+                
+                <div class="file-upload">
+                    <input type="file" id="j48-file-input" accept=".arff,.csv">
+                    <label for="j48-file-input" class="upload-label">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        Seleccionar Archivo
+                    </label>
+                    <div id="j48-file-name" class="file-info" style="display: none;">
+                        <i class="fas fa-file-alt"></i>
+                        <span id="j48-file-name-text"></span>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="action-btn" onclick="uploadDotTree()">
+                        <i class="fas fa-eye"></i> Visualizar Árbol
+                    </button>
+                    <button class="action-btn secondary" onclick="downloadAsPNG()">
+                        <i class="fas fa-download"></i> Descargar PNG
+                    </button>
+                </div>
+
+                <div id="j48-graph"></div>
+            </div>
+        </div>
+
+        <!-- Tab K-Means -->
+        <div id="kmeans" class="tab-content">
+            <div class="glass-panel">
+                <h2 class="section-title">Clustering K-Means</h2>
+                <p>Visualización interactiva de clusters generados por el algoritmo K-Means</p>
+                
+                <div class="file-upload">
+                    <input type="file" id="kmeans-file-input" accept=".csv,.arff">
+                    <label for="kmeans-file-input" class="upload-label">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        Seleccionar Archivo
+                    </label>
+                    <div id="kmeans-file-name" class="file-info" style="display: none;">
+                        <i class="fas fa-file-alt"></i>
+                        <span id="kmeans-file-name-text"></span>
+                    </div>
+                </div>
+
+                <div class="select-group">
+                    <label for="xAttr" class="select-label">Atributo para el Eje X</label>
+                    <select id="xAttr" class="styled-select"></select>
+                </div>
+
+                <div class="select-group">
+                    <label for="yAttr" class="select-label">Atributo para el Eje Y</label>
+                    <select id="yAttr" class="styled-select"></select>
+                </div>
+
+                <div class="select-group">
+                    <label for="kInput" class="select-label">Número de Clusters (k)</label>
+                    <input type="number" id="kInput" value="3" min="1" class="styled-select" style="padding: 0.9rem 1.2rem;">
+                </div>
+
+                <button class="action-btn" onclick="analizarKMeans()">
+                    <i class="fas fa-play"></i> Generar Gráfico
+                </button>
+
+                <div style="position: relative; height:500px;">
+                    <canvas id="kmeans-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Red Neuronal -->
+        <div id="mlp" class="tab-content">
+            <div class="glass-panel">
+                <h2 class="section-title">Red Neuronal Multilayer Perceptron</h2>
+                <p>Visualización interactiva de redes neuronales generadas por WEKA</p>
+                
+                <div class="file-upload">
+                    <input type="file" id="mlp-file-input" accept=".csv,.arff">
+                    <label for="mlp-file-input" class="upload-label">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        Seleccionar Archivo
+                    </label>
+                    <div id="mlp-file-name" class="file-info" style="display: none;">
+                        <i class="fas fa-file-alt"></i>
+                        <span id="mlp-file-name-text"></span>
+                    </div>
+                </div>
+
+                <div class="select-group">
+                    <label for="hiddenCount" class="select-label">Número de Neuronas Ocultas</label>
+                    <input type="number" id="hiddenCount" value="8" min="1" max="30" class="styled-select" style="padding: 0.9rem 1.2rem;">
+                </div>
+
+                <div class="select-group">
+                    <label for="epochCount" class="select-label">Épocas de Entrenamiento</label>
+                    <input type="number" id="epochCount" value="50" min="1" max="1000" class="styled-select" style="padding: 0.9rem 1.2rem;">
+                </div>
+
+                <button class="action-btn" onclick="procesarRedNeuronal()">
+                    <i class="fas fa-play"></i> Visualizar Red
+                </button>
+
+                <svg id="network"></svg>
+
+                <div class="info-panel">
+                    <h3><i class="fas fa-info-circle"></i> Información de Entrenamiento</h3>
+                    <ul>
+                        <li>Learning rate: <span id="lr">-</span></li>
+                        <li>Momentum: <span id="momentum">-</span></li>
+                        <li>Épocas: <span id="epochs">-</span></li>
+                        <li>Error final: <span id="error">-</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Procesando datos...</div>
+    </div>
+
+    <script>
+        // Variables globales
+        let currentTab = 'j48';
+        let kmeansChart = null;
+        let kmeansFileContent = null;
+        let mlpFileContent = null;
+
+        // Funciones para manejar las pestañas
+        function openTab(tabName) {
+            document.getElementById(currentTab).classList.remove('active');
+            document.querySelector(`.tab-btn[onclick="openTab('${currentTab}')"]`).classList.remove('active');
+            
+            currentTab = tabName;
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`.tab-btn[onclick="openTab('${tabName}')"]`).classList.add('active');
+        }
+
+        // Configurar eventos para mostrar nombres de archivos
+        document.getElementById('j48-file-input').addEventListener('change', function(e) {
+            updateFileName(e, 'j48');
+        });
+
+        document.getElementById('kmeans-file-input').addEventListener('change', function(e) {
+            updateFileName(e, 'kmeans');
+            loadFileHeaders(e, 'kmeans');
+        });
+
+        document.getElementById('mlp-file-input').addEventListener('change', function(e) {
+            updateFileName(e, 'mlp');
+            mlpFileContent = e.target.files[0];
+        });
+
+        function updateFileName(event, prefix) {
+            const fileName = event.target.files[0]?.name;
+            if (fileName) {
+                document.getElementById(`${prefix}-file-name`).style.display = 'flex';
+                document.getElementById(`${prefix}-file-name-text`).textContent = fileName;
+            } else {
+                document.getElementById(`${prefix}-file-name`).style.display = 'none';
+            }
+        }
+
+        function loadFileHeaders(event, prefix) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const xSelect = document.getElementById("xAttr");
+            const ySelect = document.getElementById("yAttr");
+            xSelect.innerHTML = "";
+            ySelect.innerHTML = "";
+            kmeansFileContent = file;
+
+            if (file.name.endsWith(".csv")) {
+                Papa.parse(file, {
+                    complete: function(results) {
+                        const headers = results.data[0];
+                        headers.forEach((h, i) => {
+                            xSelect.appendChild(new Option(h, i));
+                            ySelect.appendChild(new Option(h, i));
+                        });
+                    }
+                });
+            } else {
+                // Para ARFF, usar nombres genéricos
+                for (let i = 0; i < 20; i++) {
+                    const name = "Attr " + i;
+                    xSelect.appendChild(new Option(name, i));
+                    ySelect.appendChild(new Option(name, i));
+                }
+            }
+        }
+
+        // Funciones para el árbol J48
+        function uploadDotTree() {
+            const fileInput = document.getElementById("j48-file-input");
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Selecciona un archivo .arff o .csv");
+                return;
+            }
+
+            showLoading();
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            fetch("/api/analyze/dot", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.text())
+            .then(dot => {
+                d3.select("#j48-graph")
+                    .graphviz()
+                    .zoom(true)
+                    .renderDot(dot);
+                hideLoading();
+            })
+            .catch(err => {
+                document.getElementById("j48-graph").innerText = "Error cargando el árbol: " + err.message;
+                hideLoading();
+            });
+        }
+
+        function downloadAsPNG() {
+            const svg = document.querySelector("#j48-graph svg");
+            if (!svg) {
+                alert("Primero debes generar el árbol");
+                return;
+            }
+
+            showLoading();
+
+            const serializer = new XMLSerializer();
+            const svgString = serializer.serializeToString(svg);
+
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            const img = new Image();
+            const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+            const url = URL.createObjectURL(svgBlob);
+
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+
+                const pngLink = document.createElement("a");
+                pngLink.href = canvas.toDataURL("image/png");
+                pngLink.download = "arbol_decision.png";
+                pngLink.click();
+                hideLoading();
+            };
+
+            img.src = url;
+        }
+
+        // Funciones para K-Means
+        function analizarKMeans() {
+            const xAttr = document.getElementById("xAttr").value;
+            const yAttr = document.getElementById("yAttr").value;
+            const k = document.getElementById("kInput").value;
+
+            if (!kmeansFileContent) {
+                alert("Selecciona un archivo primero");
+                return;
+            }
+
+            showLoading();
+
+            const formData = new FormData();
+            formData.append("file", kmeansFileContent);
+            formData.append("xAttr", xAttr);
+            formData.append("yAttr", yAttr);
+            formData.append("k", k);
+
+            fetch("http://localhost:8080/api/analyze/kmeans-plot", {
+                method: "POST",
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data[0]?.error) {
+                    alert("⚠️ Error del backend: " + data[0].error);
+                    hideLoading();
+                    return;
+                }
+                renderKMeansChart(data);
+                hideLoading();
+            })
+            .catch(err => {
+                alert("❌ Error de red: " + err);
+                hideLoading();
+            });
+        }
+
+        function renderKMeansChart(data) {
+            if (kmeansChart) kmeansChart.destroy();
+
+            const clusters = {};
+            data.forEach(p => {
+                if (!clusters[p.cluster]) clusters[p.cluster] = [];
+                clusters[p.cluster].push({ x: p.x, y: p.y });
+            });
+
+            const datasets = Object.entries(clusters).map(([clusterId, puntos]) => ({
+                label: "Cluster " + clusterId,
+                data: puntos,
+                pointRadius: 6,
+                backgroundColor: getColor(clusterId)
+            }));
+
+            const ctx = document.getElementById("kmeans-chart").getContext("2d");
+            kmeansChart = new Chart(ctx, {
+                type: "scatter",
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: "top",
+                            labels: {
+                                boxWidth: 12,
+                                padding: 20,
+                                font: {
+                                    size: 12,
+                                    family: "'Inter', sans-serif"
+                                }
+                            }
+                        },
+                        title: { 
+                            display: true, 
+                            text: "Gráfico de Clusters KMeans",
+                            font: {
+                                size: 16,
+                                family: "'Inter', sans-serif"
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                family: "'Inter', sans-serif"
+                            },
+                            bodyFont: {
+                                family: "'Inter', sans-serif"
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            title: { 
+                                display: true, 
+                                text: "Eje X",
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        y: { 
+                            title: { 
+                                display: true, 
+                                text: "Eje Y",
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function getColor(index) {
+            const colors = [
+                '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', 
+                '#ec4899', '#f43f5e', '#f97316', '#f59e0b', 
+                '#eab308', '#84cc16', '#22c55e', '#10b981', 
+                '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6'
+            ];
+            return colors[index % colors.length];
+        }
+
+        // Funciones para la Red Neuronal
+        async function procesarRedNeuronal() {
+            const hiddenCount = parseInt(document.getElementById("hiddenCount").value) || 8;
+            const epochCount = parseInt(document.getElementById("epochCount").value) || 50;
+            const file = document.getElementById("mlp-file-input").files[0];
+            
+            if (!file) {
+                alert("Selecciona un archivo primero");
+                return;
+            }
+
+            showLoading();
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await fetch("http://localhost:8080/api/analyze/mlp-structure", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.error) {
+                    alert("Error: " + data.error);
+                    hideLoading();
+                    return;
+                }
+
+                document.getElementById("lr").innerText = data.info.learning_rate.toFixed(2);
+                document.getElementById("momentum").innerText = data.info.momentum.toFixed(2);
+                document.getElementById("epochs").innerText = "0";
+                document.getElementById("error").innerText = data.info.error.toFixed(4);
+
+                renderMLP(data.entradas, hiddenCount, data.salidas);
+
+                // Lanzar animación simulada
+                iniciarAnimacionMLP(epochCount, 400);
+                hideLoading();
+            } catch (err) {
+                alert("Error: " + err.message);
+                hideLoading();
+            }
+        }
+
+        function renderMLP(inputs, hiddenCount, outputs) {
+            const svg = d3.select("#network");
+            svg.selectAll("*").remove();
+            const width = +svg.attr("width");
+            const height = +svg.attr("height");
+
+            const layerX = [100, 400, 700];
+            const maxLayerSize = Math.max(inputs.length, hiddenCount, outputs.length);
+            const verticalSpacing = height / (maxLayerSize + 1);
+
+            function computePositions(count, layerIndex) {
+                const x = layerX[layerIndex];
+                const startY = (height - (count - 1) * verticalSpacing) / 2;
+                return Array.from({ length: count }, (_, i) => ({
+                    x: x,
+                    y: startY + i * verticalSpacing
+                }));
+            }
+
+            const inputNodes = computePositions(inputs.length, 0);
+            const hiddenNodes = computePositions(hiddenCount, 1);
+            const outputNodes = computePositions(outputs.length, 2);
+
+            function connect(fromLayer, toLayer) {
+                fromLayer.forEach(from => {
+                    toLayer.forEach(to => {
+                        d3.select("#network")
+                            .append("line")
+                            .attr("class", "link")
+                            .attr("x1", from.x + 18)
+                            .attr("y1", from.y)
+                            .attr("x2", to.x - 18)
+                            .attr("y2", to.y);
+                    });
+                });
+            }
+
+            function drawNodes(nodes, labels, clase) {
+                d3.select("#network").selectAll("circle." + clase)
+                    .data(nodes)
+                    .enter()
+                    .append("circle")
+                    .attr("class", "neuron " + clase)
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y)
+                    .attr("r", 18);
+
+                d3.select("#network").selectAll("text." + clase)
+                    .data(nodes)
+                    .enter()
+                    .append("text")
+                    .attr("class", "nlabel")
+                    .attr("x", d => d.x)
+                    .attr("y", d => d.y)
+                    .text((_, i) => labels[i].length > 10 ? labels[i].slice(0, 9) + "…" : labels[i]);
+            }
+
+            connect(inputNodes, hiddenNodes);
+            connect(hiddenNodes, outputNodes);
+
+            drawNodes(inputNodes, inputs, "input");
+            drawNodes(hiddenNodes, Array(hiddenCount).fill("H"), "hidden");
+            drawNodes(outputNodes, outputs, "output");
+
+            // Etiquetas flotantes al lado de nodos de salida
+            d3.select("#network").selectAll(".output-label")
+                .data(outputNodes)
+                .enter()
+                .append("rect")
+                .attr("x", d => d.x + 25)
+                .attr("y", d => d.y - 12)
+                .attr("width", 60)
+                .attr("height", 24)
+                .attr("fill", "#f59e0b")
+                .attr("stroke", "black")
+                .attr("rx", 4);
+
+            d3.select("#network").selectAll(".output-label-text")
+                .data(outputNodes)
+                .enter()
+                .append("text")
+                .attr("x", d => d.x + 55)
+                .attr("y", d => d.y + 4)
+                .attr("text-anchor", "middle")
+                .attr("fill", "black")
+                .attr("font-size", "12px")
+                .text((_, i) => outputs[i]);
+        }
+
+        function iniciarAnimacionMLP(epocas = 50, intervalo = 300) {
+            let epocaActual = 0;
+            let errorActual = parseFloat(document.getElementById("error").innerText) || 0.2;
+
+            const epochEl = document.getElementById("epochs");
+            const errorEl = document.getElementById("error");
+
+            const links = d3.selectAll(".link").nodes();
+            const hiddenNeurons = d3.selectAll("circle.hidden").nodes();
+            const outputNeurons = d3.selectAll("circle.output").nodes();
+
+            const anim = setInterval(() => {
+                if (epocaActual >= epocas) {
+                    clearInterval(anim);
+                    return;
+                }
+
+                epocaActual += 1;
+                errorActual *= 0.96;
+
+                epochEl.innerText = epocaActual;
+                errorEl.innerText = errorActual.toFixed(4);
+
+                const rLink = links[Math.floor(Math.random() * links.length)];
+                const rHid = hiddenNeurons[Math.floor(Math.random() * hiddenNeurons.length)];
+                const rOut = outputNeurons[Math.floor(Math.random() * outputNeurons.length)];
+
+                d3.select(rLink).transition().duration(intervalo / 2)
+                    .style("stroke", "#8b5cf6").style("stroke-width", 2)
+                    .transition().duration(intervalo / 2)
+                    .style("stroke", "var(--gray)").style("stroke-width", 1);
+
+                d3.select(rHid).transition().duration(intervalo / 2)
+                    .style("fill", "#8183f4")
+                    .transition().duration(intervalo / 2)
+                    .style("fill", "var(--primary)");
+
+                d3.select(rOut).transition().duration(intervalo / 2)
+                    .style("fill", "#fbbf24")
+                    .transition().duration(intervalo / 2)
+                    .style("fill", "#f59e0b");
+
+            }, intervalo);
+        }
+
+        // Funciones auxiliares
+        function showLoading() {
+            document.getElementById("loading").style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideLoading() {
+            document.getElementById("loading").style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    </script>
+</body>
+</html>

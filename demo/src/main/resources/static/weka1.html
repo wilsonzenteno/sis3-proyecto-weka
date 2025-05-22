@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador Avanzado con Weka</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --light-bg: #f8f9fa;
+            --dark-bg: #343a40;j
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: #333;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--primary-color) !important;
+        }
+        
+        .upload-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-top: 30px;
+        }
+        
+        .dropzone {
+            border: 3px dashed #ccc;
+            border-radius: 5px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background-color: #f8fafc;
+            margin-bottom: 20px;
+        }
+        
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--primary-color);
+            background-color: #e3f2fd;
+        }
+        
+        .file-info {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .analysis-section {
+            margin-top: 40px;
+            display: none;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .tab-content {
+            padding: 20px 0;
+        }
+        
+        .weka-result-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .attribute-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .attribute-table th {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .model-actions {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .badge-primary {
+            background-color: var(--primary-color);
+        }
+        
+        .badge-success {
+            background-color: #2ecc71;
+        }
+        
+        .badge-warning {
+            background-color: #f39c12;
+        }
+        
+        .preview-table {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-chart-line"></i> Weka Analyzer Pro
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="fas fa-home"></i> Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-info-circle"></i> Acerca de</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-envelope"></i> Contacto</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="upload-container">
+            <h2 class="text-center mb-4"><i class="fas fa-file-upload"></i> Subir Archivo CSV</h2>
+            <div class="dropzone" id="dropzone">
+                <div class="dz-message">
+                    <i class="fas fa-cloud-upload-alt fa-3x mb-3" style="color: var(--primary-color);"></i>
+                    <h5>Arrastra y suelta tu archivo CSV aquí</h5>
+                    <p class="text-muted">o haz clic para seleccionar un archivo</p>
+                    <button class="btn btn-primary btn-lg mt-3">
+                        <i class="fas fa-folder-open"></i> Seleccionar Archivo
+                    </button>
+                </div>
+                <input type="file" id="fileInput" accept=".csv" style="display: none;">
+            </div>
+            
+            <div class="file-info" id="fileInfo" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 id="fileName"></h5>
+                        <p class="mb-0" id="fileDetails"></p>
+                    </div>
+                    <button class="btn btn-outline-danger" id="removeFile">
+                        <i class="fas fa-times"></i> Eliminar
+                    </button>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <button class="btn btn-success btn-lg" id="analyzeBtn" style="display: none;">
+                    <i class="fas fa-chart-bar"></i> Analizar con Weka
+                </button>
+            </div>
+        </div>
+        
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <h4 class="mt-3">Procesando archivo con Weka...</h4>
+            <p>Esto puede tomar unos momentos dependiendo del tamaño del archivo</p>
+        </div>
+        
+        <div class="analysis-section" id="analysisSection">
+            <ul class="nav nav-tabs" id="analysisTabs">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#overview">
+                        <i class="fas fa-info-circle"></i> Resumen
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#visualization">
+                        <i class="fas fa-chart-pie"></i> Visualización
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#modeling">
+                        <i class="fas fa-brain"></i> Modelado
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#preview">
+                        <i class="fas fa-table"></i> Vista Previa
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="overview">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="weka-result-card">
+                                <h4><i class="fas fa-database"></i> Información del Dataset</h4>
+                                <table class="table">
+                                    <tbody id="datasetInfo">
+                                        <!-- Se llena dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="weka-result-card">
+                                <h4><i class="fas fa-list"></i> Atributos</h4>
+                                <div class="table-responsive">
+                                    <table class="table attribute-table" id="attributesTable">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Nombre</th>
+                                                <th>Tipo</th>
+                                                <th>Estadísticas</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Se llena dinámicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="weka-result-card">
+                                <h4><i class="fas fa-chart-bar"></i> Distribución de Clases</h4>
+                                <div class="chart-container">
+                                    <canvas id="classDistributionChart"></canvas>
+                                </div>
+                            </div>
+                            
+                            <div class="weka-result-card">
+                                <h4><i class="fas fa-lightbulb"></i> Recomendaciones</h4>
+                                <div id="recommendations">
+                                    <!-- Se llena dinámicamente -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="visualization">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="weka-result-card">
+                                <h4><i class="fas fa-chart-line"></i> Correlación entre Atributos</h4>
+                                <div class="chart-container">
+                                    <canvas id="correlationChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="weka-result-card">
+                                <h4><i class="fas fa-chart-area"></i> Distribución de Valores</h4>
+                                <div class="chart-container">
+                                    <canvas id="distributionChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="weka-result-card">
+                                <h4><i class="fas fa-sliders-h"></i> Selector de Visualización</h4>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label for="xAxisSelect" class="form-label">Eje X</label>
+                                        <select class="form-select" id="xAxisSelect">
+                                            <!-- Se llena dinámicamente -->
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="yAxisSelect" class="form-label">Eje Y</label>
+                                        <select class="form-select" id="yAxisSelect">
+                                            <!-- Se llena dinámicamente -->
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="chartTypeSelect" class="form-label">Tipo de Gráfico</label>
+                                        <select class="form-select" id="chartTypeSelect">
+                                            <option value="scatter">Dispersión</option>
+                                            <option value="bar">Barras</option>
+                                            <option value="line">Líneas</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <button class="btn btn-primary" id="updateChartBtn">
+                                        <i class="fas fa-sync-alt"></i> Actualizar Gráfico
+                                    </button>
+                                </div>
+                                <div class="chart-container mt-4">
+                                    <canvas id="customChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="modeling">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="weka-result-card">
+                                <h4><i class="fas fa-cogs"></i> Configuración del Modelo</h4>
+                                <div class="mb-3">
+                                    <label for="algorithmSelect" class="form-label">Algoritmo</label>
+                                    <select class="form-select" id="algorithmSelect">
+                                        <option value="j48">J48 (Árbol de decisión)</option>
+                                        <option value="naiveBayes">Naive Bayes</option>
+                                        <option value="svm">SMO (SVM)</option>
+                                        <option value="randomForest">Random Forest</option>
+                                        <option value="mlp">Multilayer Perceptron</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="targetAttribute" class="form-label">Atributo Objetivo</label>
+                                    <select class="form-select" id="targetAttribute">
+                                        <!-- Se llena dinámicamente -->
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Opciones de Evaluación</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="evalOption" id="crossValidation" checked>
+                                        <label class="form-check-label" for="crossValidation">
+                                            Validación Cruzada (10 folds)
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="evalOption" id="percentageSplit">
+                                        <label class="form-check-label" for="percentageSplit">
+                                            División Porcentual (66% entrenamiento)
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <button class="btn btn-success" id="trainModelBtn">
+                                    <i class="fas fa-play"></i> Entrenar Modelo
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="weka-result-card">
+                                <h4><i class="fas fa-tasks"></i> Resultados del Modelo</h4>
+                                <div id="modelResults" style="display: none;">
+                                    <div class="alert alert-success" id="modelSummary">
+                                        <!-- Se llena dinámicamente -->
+                                    </div>
+                                    
+                                    <h5>Métricas de Rendimiento</h5>
+                                    <table class="table table-bordered" id="metricsTable">
+                                        <!-- Se llena dinámicamente -->
+                                    </table>
+                                    
+                                    <div class="chart-container" style="height: 300px;">
+                                        <canvas id="modelPerformanceChart"></canvas>
+                                    </div>
+                                    
+                                    <div class="model-actions">
+                                        <button class="btn btn-primary me-2" id="saveModelBtn">
+                                            <i class="fas fa-save"></i> Guardar Modelo
+                                        </button>
+                                        <button class="btn btn-info me-2" id="viewModelBtn">
+                                            <i class="fas fa-eye"></i> Ver Modelo
+                                        </button>
+                                        <button class="btn btn-warning" id="exportResultsBtn">
+                                            <i class="fas fa-file-export"></i> Exportar Resultados
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div id="modelPlaceholder" class="text-center py-5">
+                                    <i class="fas fa-robot fa-3x mb-3" style="color: #ddd;"></i>
+                                    <h5>No hay resultados de modelo aún</h5>
+                                    <p class="text-muted">Configura y ejecuta un algoritmo para ver los resultados</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="preview">
+                    <div class="weka-result-card">
+                        <h4><i class="fas fa-table"></i> Vista Previa de los Datos</h4>
+                        <div class="table-responsive preview-table">
+                            <table class="table table-striped table-hover" id="dataPreview">
+                                <!-- Se llena dinámicamente -->
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para visualizar modelo -->
+    <div class="modal fade" id="modelModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalles del Modelo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="modelDetails"><!-- Se llena dinámicamente --></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" id="copyModelBtn">
+                        <i class="fas fa-copy"></i> Copiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Weka Analyzer Pro</h5>
+                    <p>Una herramienta poderosa para análisis de datos y machine learning integrando Weka.</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Enlaces</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-white">Documentación</a></li>
+                        <li><a href="#" class="text-white">Ejemplos</a></li>
+                        <li><a href="#" class="text-white">API</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Contacto</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-envelope me-2"></i> soporte@wekaanalyzer.com</li>
+                        <li><i class="fas fa-phone me-2"></i> +1 (555) 123-4567</li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p class="mb-0">&copy; 2023 Weka Analyzer Pro. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script>
+        // Variables globales
+        let currentFile = null;
+        let datasetInfo = null;
+        let charts = {};
+        let currentModel = null;
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            initDropzone();
+            setupEventListeners();
+        });
+        
+        function initDropzone() {
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('fileInput');
+            
+            dropzone.addEventListener('click', () => fileInput.click());
+            
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files.length) {
+                    handleFileSelection(e.target.files[0]);
+                }
+            });
+            
+            // Manejar arrastrar y soltar
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                dropzone.classList.add('dragover');
+            }
+            
+            function unhighlight() {
+                dropzone.classList.remove('dragover');
+            }
+            
+            dropzone.addEventListener('drop', function(e) {
+                const dt = e.dataTransfer;
+                const file = dt.files[0];
+                if (file) {
+                    handleFileSelection(file);
+                }
+            });
+        }
+        
+        function setupEventListeners() {
+            // Botón eliminar archivo
+            document.getElementById('removeFile').addEventListener('click', function() {
+                resetFileSelection();
+            });
+            
+            // Botón analizar
+            document.getElementById('analyzeBtn').addEventListener('click', function() {
+                analyzeWithWeka();
+            });
+            
+            // Botón actualizar gráfico
+            document.getElementById('updateChartBtn').addEventListener('click', function() {
+                updateCustomChart();
+            });
+            
+            // Botón entrenar modelo
+            document.getElementById('trainModelBtn').addEventListener('click', function() {
+                trainModel();
+            });
+            
+            // Botones del modelo
+            document.getElementById('viewModelBtn').addEventListener('click', function() {
+                viewModelDetails();
+            });
+            
+            document.getElementById('saveModelBtn').addEventListener('click', function() {
+                saveModel();
+            });
+            
+            document.getElementById('exportResultsBtn').addEventListener('click', function() {
+                exportResults();
+            });
+            
+            document.getElementById('copyModelBtn').addEventListener('click', function() {
+                copyModelToClipboard();
+            });
+        }
+        
+        function handleFileSelection(file) {
+            if (!file.name.endsWith('.csv')) {
+                alert('Por favor, suba un archivo con extensión .csv');
+                return;
+            }
+            
+            currentFile = file;
+            
+            // Mostrar información del archivo
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileDetails').textContent = 
+                `Tamaño: ${(file.size / 1024).toFixed(2)} KB | Tipo: ${file.type || 'CSV'}`;
+            
+            // Mostrar botón de analizar
+            document.getElementById('analyzeBtn').style.display = 'inline-block';
+            
+            // Ocultar sección de análisis si estaba visible
+            document.getElementById('analysisSection').style.display = 'none';
+        }
+        
+        function resetFileSelection() {
+            currentFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('analyzeBtn').style.display = 'none';
+            document.getElementById('analysisSection').style.display = 'none';
+        }
+        
+        function analyzeWithWeka() {
+            if (!currentFile) return;
+            
+            // Mostrar spinner de carga
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('analysisSection').style.display = 'none';
+            
+            // Simular procesamiento con Weka (en un caso real sería una llamada AJAX)
+            setTimeout(() => {
+                processFileWithWeka(currentFile);
+            }, 1500);
+        }
+        
+        function processFileWithWeka(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const lines = content.split('\n').filter(line => line.trim() !== '');
+                const headers = lines[0].split(',').map(h => h.trim());
+                
+                // Extraer datos para vista previa (primeras 10 filas)
+                const previewData = [];
+                for (let i = 1; i < Math.min(11, lines.length); i++) {
+                    previewData.push(lines[i].split(','));
+                }
+                
+                // Analizar tipos de datos (simplificado)
+                const attributes = headers.map((header, index) => {
+                    let type = 'Numeric';
+                    let uniqueValues = new Set();
+                    let numericValues = [];
+                    
+                    // Analizar primeras 100 filas para determinar tipo
+                    for (let i = 1; i < Math.min(101, lines.length); i++) {
+                        const value = lines[i].split(',')[index].trim();
+                        uniqueValues.add(value);
+                        
+                        if (value && !isNaN(value)) {
+                            numericValues.push(parseFloat(value));
+                        } else {
+                            type = 'Nominal';
+                        }
+                    }
+                    
+                    // Calcular estadísticas básicas para numéricos
+                    let stats = {};
+                    if (type === 'Numeric' && numericValues.length > 0) {
+                        numericValues.sort((a, b) => a - b);
+                        stats = {
+                            min: numericValues[0].toFixed(2),
+                            max: numericValues[numericValues.length - 1].toFixed(2),
+                            mean: (numericValues.reduce((a, b) => a + b, 0) / numericValues.length).toFixed(2),
+                            median: numericValues[Math.floor(numericValues.length / 2)].toFixed(2)
+                        };
+                    } else {
+                        stats = {
+                            unique: uniqueValues.size
+                        };
+                    }
+                    
+                    return {
+                        name: header,
+                        type: type,
+                        stats: stats,
+                        uniqueValues: Array.from(uniqueValues).slice(0, 5)
+                    };
+                });
+                
+                // Determinar si hay atributo clase (última columna nominal)
+                let classAttribute = null;
+                if (attributes[attributes.length - 1].type === 'Nominal') {
+                    classAttribute = attributes[attributes.length - 1].name;
+                }
+                
+                // Crear objeto con información del dataset
+                datasetInfo = {
+                    name: file.name,
+                    size: file.size,
+                    instances: lines.length - 1,
+                    attributes: attributes.length,
+                    attributesInfo: attributes,
+                    classAttribute: classAttribute,
+                    previewData: previewData
+                };
+                
+                // Ocultar spinner y mostrar resultados
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('analysisSection').style.display = 'block';
+                
+                // Renderizar información del dataset
+                renderDatasetInfo();
+                
+                // Inicializar gráficos
+                initCharts();
+                
+                // Inicializar selectores de atributos
+                initAttributeSelectors();
+                
+                // Renderizar vista previa de datos
+                renderDataPreview();
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        function renderDatasetInfo() {
+            if (!datasetInfo) return;
+            
+            // Información básica del dataset
+            const datasetInfoHTML = `
+                <tr>
+                    <td><strong>Nombre</strong></td>
+                    <td>${datasetInfo.name}</td>
+                </tr>
+                <tr>
+                    <td><strong>Instancias</strong></td>
+                    <td>${datasetInfo.instances}</td>
+                </tr>
+                <tr>
+                    <td><strong>Atributos</strong></td>
+                    <td>${datasetInfo.attributes}</td>
+                </tr>
+                <tr>
+                    <td><strong>Atributo Clase</strong></td>
+                    <td>${datasetInfo.classAttribute || 'No identificado'}</td>
+                </tr>
+            `;
+            
+            document.getElementById('datasetInfo').innerHTML = datasetInfoHTML;
+            
+            // Tabla de atributos
+            const attributesTable = document.getElementById('attributesTable').getElementsByTagName('tbody')[0];
+            attributesTable.innerHTML = '';
+            
+            datasetInfo.attributesInfo.forEach((attr, index) => {
+                const row = attributesTable.insertRow();
+                
+                // Número
+                const cellIndex = row.insertCell(0);
+                cellIndex.textContent = index + 1;
+                
+                // Nombre
+                const cellName = row.insertCell(1);
+                cellName.textContent = attr.name;
+                
+                // Tipo
+                const cellType = row.insertCell(2);
+                const typeBadge = document.createElement('span');
+                typeBadge.className = `badge ${attr.type === 'Numeric' ? 'bg-primary' : 'bg-success'}`;
+                typeBadge.textContent = attr.type;
+                cellType.appendChild(typeBadge);
+                
+                // Estadísticas
+                const cellStats = row.insertCell(3);
+                if (attr.type === 'Numeric') {
+                    cellStats.innerHTML = `
+                        Min: ${attr.stats.min} | Max: ${attr.stats.max}<br>
+                        Media: ${attr.stats.mean} | Mediana: ${attr.stats.median}
+                    `;
+                } else {
+                    cellStats.innerHTML = `
+                        Valores únicos: ${attr.stats.unique}<br>
+                        Ejemplos: ${attr.uniqueValues.join(', ')}${attr.stats.unique > 5 ? '...' : ''}
+                    `;
+                }
+            });
+            
+            // Recomendaciones
+            const recommendations = [];
+            
+            if (datasetInfo.classAttribute) {
+                recommendations.push({
+                    icon: 'fa-check-circle',
+                    color: 'text-success',
+                    text: 'Se ha identificado un atributo clase. Puedes proceder con modelado predictivo.'
+                });
+                
+                // Contar valores únicos para la clase
+                const classAttr = datasetInfo.attributesInfo.find(a => a.name === datasetInfo.classAttribute);
+                if (classAttr.stats.unique > 10) {
+                    recommendations.push({
+                        icon: 'fa-exclamation-triangle',
+                        color: 'text-warning',
+                        text: `El atributo clase tiene ${classAttr.stats.unique} valores únicos. Considera agrupar categorías similares.`
+                    });
+                }
+            } else {
+                recommendations.push({
+                    icon: 'fa-info-circle',
+                    color: 'text-info',
+                    text: 'No se identificó un atributo clase claro. Puedes usar clustering o seleccionar manualmente un atributo objetivo.'
+                });
+            }
+            
+            const numericAttrs = datasetInfo.attributesInfo.filter(a => a.type === 'Numeric').length;
+            const nominalAttrs = datasetInfo.attributesInfo.filter(a => a.type === 'Nominal').length;
+            
+            recommendations.push({
+                icon: 'fa-chart-bar',
+                color: 'text-primary',
+                text: `Dataset contiene ${numericAttrs} atributos numéricos y ${nominalAttrs} atributos nominales.`
+            });
+            
+            if (numericAttrs > 5) {
+                recommendations.push({
+                    icon: 'fa-lightbulb',
+                    color: 'text-info',
+                    text: 'Considera usar técnicas de reducción de dimensionalidad como PCA debido al número de atributos numéricos.'
+                });
+            }
+            
+            const recommendationsHTML = recommendations.map(rec => `
+                <div class="d-flex mb-2">
+                    <div class="me-3 ${rec.color}">
+                        <i class="fas ${rec.icon} fa-lg"></i>
+                    </div>
+                    <div>${rec.text}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('recommendations').innerHTML = recommendationsHTML;
+        }
+        
+        function initCharts() {
+            // Gráfico de distribución de clases (si existe)
+            if (datasetInfo.classAttribute) {
+                const classAttr = datasetInfo.attributesInfo.find(a => a.name === datasetInfo.classAttribute);
+                const classCounts = {};
+                
+                classAttr.uniqueValues.forEach(val => {
+                    classCounts[val] = Math.floor(Math.random() * 100) + 20; // Simular conteos
+                });
+                
+                const ctx = document.getElementById('classDistributionChart').getContext('2d');
+                charts.classDistribution = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(classCounts),
+                        datasets: [{
+                            label: 'Conteo',
+                            data: Object.values(classCounts),
+                            backgroundColor: [
+                                'rgba(54, 162, 235, 0.7)',
+                                'rgba(255, 99, 132, 0.7)',
+                                'rgba(75, 192, 192, 0.7)',
+                                'rgba(255, 159, 64, 0.7)',
+                                'rgba(153, 102, 255, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(255, 159, 64, 1)',
+                                'rgba(153, 102, 255, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `Distribución de ${datasetInfo.classAttribute}`
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Gráfico de correlación (simulado)
+            const numericAttrs = datasetInfo.attributesInfo.filter(a => a.type === 'Numeric');
+            if (numericAttrs.length > 1) {
+                const ctx = document.getElementById('correlationChart').getContext('2d');
+                const labels = numericAttrs.map(a => a.name);
+                
+                // Generar matriz de correlación simulada
+                const size = numericAttrs.length;
+                const data = [];
+                for (let i = 0; i < size; i++) {
+                    const row = [];
+                    for (let j = 0; j < size; j++) {
+                        if (i === j) {
+                            row.push(1);
+                        } else {
+                            row.push(Math.random() * 2 - 1); // Valores entre -1 y 1
+                        }
+                    }
+                    data.push(row);
+                }
+                
+                charts.correlation = new Chart(ctx, {
+                    type: 'heatmap',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Correlación',
+                            data: data,
+                            backgroundColor: function(context) {
+                                const value = context.dataset.data[context.dataIndex];
+                                const alpha = Math.abs(value);
+                                return value < 0 ? 
+                                    `rgba(255, 99, 132, ${alpha})` : 
+                                    `rgba(54, 162, 235, ${alpha})`;
+                            }
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Matriz de Correlación'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `Correlación: ${context.raw.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Gráfico de distribución (histograma para el primer atributo numérico)
+            const firstNumeric = datasetInfo.attributesInfo.find(a => a.type === 'Numeric');
+            if (firstNumeric) {
+                const ctx = document.getElementById('distributionChart').getContext('2d');
+                
+                // Generar datos aleatorios para el histograma
+                const min = parseFloat(firstNumeric.stats.min);
+                const max = parseFloat(firstNumeric.stats.max);
+                const range = max - min;
+                const binCount = 10;
+                const binSize = range / binCount;
+                
+                const bins = Array(binCount).fill(0);
+                for (let i = 0; i < 100; i++) {
+                    const value = min + Math.random() * range;
+                    const binIndex = Math.min(Math.floor((value - min) / binSize), binCount - 1);
+                    bins[binIndex]++;
+                }
+                
+                charts.distribution = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Array(binCount).fill(0).map((_, i) => {
+                            const start = min + i * binSize;
+                            const end = start + binSize;
+                            return `${start.toFixed(1)}-${end.toFixed(1)}`;
+                        }),
+                        datasets: [{
+                            label: 'Frecuencia',
+                            data: bins,
+                            backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `Distribución de ${firstNumeric.name}`
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Gráfico personalizado inicial
+            updateCustomChart();
+        }
+        
+        function initAttributeSelectors() {
+            const xAxisSelect = document.getElementById('xAxisSelect');
+            const yAxisSelect = document.getElementById('yAxisSelect');
+            const targetAttribute = document.getElementById('targetAttribute');
+            
+            // Limpiar selectores
+            xAxisSelect.innerHTML = '';
+            yAxisSelect.innerHTML = '';
+            targetAttribute.innerHTML = '';
+            
+            // Agregar opción vacía a targetAttribute
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = '-- Seleccionar atributo --';
+            targetAttribute.appendChild(defaultOption);
+            
+            // Llenar selectores con atributos
+            datasetInfo.attributesInfo.forEach(attr => {
+                const option1 = document.createElement('option');
+                option1.value = attr.name;
+                option1.textContent = attr.name;
+                xAxisSelect.appendChild(option1.cloneNode(true));
+                yAxisSelect.appendChild(option1.cloneNode(true));
+                
+                const option2 = document.createElement('option');
+                option2.value = attr.name;
+                option2.textContent = attr.name;
+                targetAttribute.appendChild(option2);
+            });
+            
+            // Seleccionar primeros atributos numéricos por defecto
+            const numericAttrs = datasetInfo.attributesInfo.filter(a => a.type === 'Numeric');
+            if (numericAttrs.length >= 2) {
+                xAxisSelect.value = numericAttrs[0].name;
+                yAxisSelect.value = numericAttrs[1].name;
+            }
+            
+            // Seleccionar atributo clase si existe
+            if (datasetInfo.classAttribute) {
+                targetAttribute.value = datasetInfo.classAttribute;
+            }
+        }
+        
+        function updateCustomChart() {
+            const xAttr = document.getElementById('xAxisSelect').value;
+            const yAttr = document.getElementById('yAxisSelect').value;
+            const chartType = document.getElementById('chartTypeSelect').value;
+            
+            if (!xAttr || !yAttr) return;
+            
+            const xAttrInfo = datasetInfo.attributesInfo.find(a => a.name === xAttr);
+            const yAttrInfo = datasetInfo.attributesInfo.find(a => a.name === yAttr);
+            
+            // Obtener el canvas y destruir el gráfico anterior si existe
+            const ctx = document.getElementById('customChart').getContext('2d');
+            if (charts.custom) {
+                charts.custom.destroy();
+            }
+            
+            // Generar datos aleatorios basados en los tipos de atributos
+            let datasets = [];
+            
+            if (chartType === 'scatter') {
+                // Datos para gráfico de dispersión
+                const pointCount = 100;
+                const points = [];
+                
+                for (let i = 0; i < pointCount; i++) {
+                    let x, y;
+                    
+                    if (xAttrInfo.type === 'Numeric') {
+                        const min = parseFloat(xAttrInfo.stats.min);
+                        const max = parseFloat(xAttrInfo.stats.max);
+                        x = min + Math.random() * (max - min);
+                    } else {
+                        x = xAttrInfo.uniqueValues[Math.floor(Math.random() * xAttrInfo.uniqueValues.length)];
+                    }
+                    
+                    if (yAttrInfo.type === 'Numeric') {
+                        const min = parseFloat(yAttrInfo.stats.min);
+                        const max = parseFloat(yAttrInfo.stats.max);
+                        y = min + Math.random() * (max - min);
+                    } else {
+                        y = yAttrInfo.uniqueValues[Math.floor(Math.random() * yAttrInfo.uniqueValues.length)];
+                    }
+                    
+                    points.push({ x, y });
+                }
+                
+                datasets = [{
+                    label: `${xAttr} vs ${yAttr}`,
+                    data: points,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                    pointRadius: 5
+                }];
+            } else if (chartType === 'bar' || chartType === 'line') {
+                // Datos para gráfico de barras o líneas
+                let labels, data;
+                
+                if (xAttrInfo.type === 'Nominal' && yAttrInfo.type === 'Numeric') {
+                    // Agrupar por valores nominales del eje X
+                    labels = xAttrInfo.uniqueValues;
+                    data = labels.map(() => {
+                        const min = parseFloat(yAttrInfo.stats.min);
+                        const max = parseFloat(yAttrInfo.stats.max);
+                        return min + Math.random() * (max - min);
+                    });
+                } else if (yAttrInfo.type === 'Nominal' && xAttrInfo.type === 'Numeric') {
+                    // Agrupar por valores nominales del eje Y
+                    labels = yAttrInfo.uniqueValues;
+                    data = labels.map(() => {
+                        const min = parseFloat(xAttrInfo.stats.min);
+                        const max = parseFloat(xAttrInfo.stats.max);
+                        return min + Math.random() * (max - min);
+                    });
+                } else {
+                    // Ambos numéricos - usar rangos
+                    labels = ['Rango 1', 'Rango 2', 'Rango 3', 'Rango 4', 'Rango 5'];
+                    data = labels.map(() => Math.random() * 100);
+                }
+                
+                datasets = [{
+                    label: chartType === 'bar' ? yAttr : xAttr,
+                    data: data,
+                    backgroundColor: chartType === 'bar' ? 'rgba(75, 192, 192, 0.7)' : 'rgba(153, 102, 255, 0.7)',
+                    borderColor: chartType === 'bar' ? 'rgba(75, 192, 192, 1)' : 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }];
+            }
+            
+            // Crear el nuevo gráfico
+            charts.custom = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: chartType === 'scatter' ? undefined : datasets[0].data.map((_, i) => `Categoría ${i + 1}`),
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${xAttr} vs ${yAttr}`
+                        }
+                    },
+                    scales: chartType === 'scatter' ? {
+                        x: {
+                            title: {
+                                display: true,
+                                text: xAttr
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: yAttr
+                            }
+                        }
+                    } : undefined
+                }
+            });
+        }
+        
+        function renderDataPreview() {
+            if (!datasetInfo || !datasetInfo.previewData) return;
+            
+            const table = document.getElementById('dataPreview');
+            table.innerHTML = '';
+            
+            // Crear encabezados
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            
+            datasetInfo.attributesInfo.forEach(attr => {
+                const th = document.createElement('th');
+                th.textContent = attr.name;
+                headerRow.appendChild(th);
+            });
+            
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            // Crear cuerpo de la tabla
+            const tbody = document.createElement('tbody');
+            
+            datasetInfo.previewData.forEach(rowData => {
+                const tr = document.createElement('tr');
+                
+                rowData.forEach((cell, index) => {
+                    const td = document.createElement('td');
+                    td.textContent = cell.trim();
+                    
+                    // Resaltar atributo clase si existe
+                    if (datasetInfo.classAttribute && 
+                        datasetInfo.attributesInfo[index].name === datasetInfo.classAttribute) {
+                        td.style.fontWeight = 'bold';
+                        td.style.color = '#e74c3c';
+                    }
+                    
+                    tr.appendChild(td);
+                });
+                
+                tbody.appendChild(tr);
+            });
+            
+            table.appendChild(tbody);
+        }
+        
+        function trainModel() {
+            const algorithm = document.getElementById('algorithmSelect').value;
+            const targetAttr = document.getElementById('targetAttribute').value;
+            const evalMethod = document.querySelector('input[name="evalOption"]:checked').id;
+            
+            if (!targetAttr) {
+                alert('Por favor selecciona un atributo objetivo');
+                return;
+            }
+            
+            // Mostrar carga
+            const modelResults = document.getElementById('modelResults');
+            const modelPlaceholder = document.getElementById('modelPlaceholder');
+            modelResults.style.display = 'none';
+            modelPlaceholder.innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <h5 class="mt-3">Entrenando modelo ${algorithm}...</h5>
+                <p>Por favor espera mientras Weka procesa tu solicitud</p>
+            `;
+            
+            // Simular entrenamiento del modelo
+            setTimeout(() => {
+                // Generar resultados simulados
+                currentModel = {
+                    algorithm: algorithm,
+                    targetAttribute: targetAttr,
+                    evaluationMethod: evalMethod,
+                    accuracy: (Math.random() * 30 + 70).toFixed(2), // 70-100%
+                    precision: (Math.random() * 30 + 70).toFixed(2),
+                    recall: (Math.random() * 30 + 70).toFixed(2),
+                    f1: (Math.random() * 30 + 70).toFixed(2),
+                    details: generateModelDetails(algorithm, targetAttr)
+                };
+                
+                // Mostrar resultados
+                displayModelResults();
+            }, 3000);
+        }
+        
+        function generateModelDetails(algorithm, targetAttr) {
+            const targetAttrInfo = datasetInfo.attributesInfo.find(a => a.name === targetAttr);
+            let details = '';
+            
+            if (algorithm === 'j48') {
+                details = `Árbol de decisión J48 para ${targetAttr}\n`;
+                details += '====================================\n\n';
+                details += `Número de hojas: ${Math.floor(Math.random() * 10) + 5}\n`;
+                details += `Tamaño del árbol: ${Math.floor(Math.random() * 20) + 10}\n\n`;
+                
+                // Generar estructura de árbol simulada
+                details += 'Estructura del árbol:\n';
+                details += '----------------------\n';
+                details += `${targetAttr}\n`;
+                details += '├── Atributo1 <= 0.5\n';
+                details += '│   ├── ClaseA [60%]\n';
+                details += '│   └── ClaseB [40%]\n';
+                details += '└── Atributo1 > 0.5\n';
+                details += '    ├── Atributo2 <= 1.2\n';
+                details += '    │   ├── ClaseB [70%]\n';
+                details += '    │   └── ClaseC [30%]\n';
+                details += '    └── Atributo2 > 1.2\n';
+                details += '        └── ClaseC [90%]\n';
+            } else if (algorithm === 'naiveBayes') {
+                details = `Modelo Naive Bayes para ${targetAttr}\n`;
+                details += '====================================\n\n';
+                details += 'Distribuciones de probabilidad:\n';
+                
+                targetAttrInfo.uniqueValues.forEach(val => {
+                    details += `\nClase ${val}:\n`;
+                    datasetInfo.attributesInfo.forEach(attr => {
+                        if (attr.name !== targetAttr && attr.type === 'Numeric') {
+                            details += `- ${attr.name}: Normal(μ=${(Math.random() * 10).toFixed(2)}, σ=${(Math.random() * 2).toFixed(2)})\n`;
+                        }
+                    });
+                });
+            } else if (algorithm === 'svm') {
+                details = `Máquina de Vectores de Soporte (SMO) para ${targetAttr}\n`;
+                details += '====================================\n\n';
+                details += `Número de vectores de soporte: ${Math.floor(Math.random() * 50) + 20}\n`;
+                details += `Kernel: Polinomial grado ${Math.floor(Math.random() * 3) + 2}\n`;
+                details += `Parámetro C: ${(Math.random() * 10).toFixed(2)}\n`;
+            } else if (algorithm === 'randomForest') {
+                details = `Random Forest para ${targetAttr}\n`;
+                details += '====================================\n\n';
+                details += `Número de árboles: ${Math.floor(Math.random() * 90) + 10}\n`;
+                details += `Atributos por árbol: ${Math.floor(datasetInfo.attributesInfo.length * 0.3)}\n`;
+                details += `Profundidad máxima: ${Math.floor(Math.random() * 10) + 5}\n`;
+            } else if (algorithm === 'mlp') {
+                details = `Perceptrón Multicapa para ${targetAttr}\n`;
+                details += '====================================\n\n';
+                details += 'Arquitectura de la red:\n';
+                details += `- Capa de entrada: ${datasetInfo.attributesInfo.length - 1} nodos\n`;
+                details += `- Capa oculta: ${Math.floor(Math.random() * 5) + 3} nodos\n`;
+                details += `- Capa de salida: ${targetAttrInfo.uniqueValues.length} nodos\n`;
+                details += `Tasa de aprendizaje: ${(Math.random() * 0.2 + 0.1).toFixed(3)}\n`;
+                details += `Épocas: ${Math.floor(Math.random() * 400) + 100}\n`;
+            }
+            
+            return details;
+        }
+        
+        function displayModelResults() {
+            const modelResults = document.getElementById('modelResults');
+            const modelPlaceholder = document.getElementById('modelPlaceholder');
+            
+            // Mostrar resumen
+            document.getElementById('modelSummary').innerHTML = `
+                <h5>Modelo ${currentModel.algorithm.toUpperCase()} entrenado exitosamente</h5>
+                <p>Atributo objetivo: <strong>${currentModel.targetAttribute}</strong></p>
+                <p>Método de evaluación: <strong>${currentModel.evaluationMethod === 'crossValidation' ? 'Validación cruzada (10 folds)' : 'División porcentual (66%)'}</strong></p>
+                <p>Precisión: <strong>${currentModel.accuracy}%</strong></p>
+            `;
+            
+            // Mostrar métricas
+            const metricsTable = document.getElementById('metricsTable');
+            metricsTable.innerHTML = `
+                <tr>
+                    <th>Métrica</th>
+                    <th>Valor</th>
+                    <th>Interpretación</th>
+                </tr>
+                <tr>
+                    <td>Precisión</td>
+                    <td>${currentModel.accuracy}%</td>
+                    <td>${currentModel.accuracy > 85 ? 'Excelente' : currentModel.accuracy > 70 ? 'Buena' : 'Regular'}</td>
+                </tr>
+                <tr>
+                    <td>Precisión (Precision)</td>
+                    <td>${currentModel.precision}%</td>
+                    <td>${currentModel.precision > 85 ? 'Muy precisa' : currentModel.precision > 70 ? 'Aceptable' : 'Podría mejorar'}</td>
+                </tr>
+                <tr>
+                    <td>Sensibilidad (Recall)</td>
+                    <td>${currentModel.recall}%</td>
+                    <td>${currentModel.recall > 85 ? 'Muy sensible' : currentModel.recall > 70 ? 'Adecuada' : 'Baja'}</td>
+                </tr>
+                <tr>
+                    <td>Puntaje F1</td>
+                    <td>${currentModel.f1}%</td>
+                    <td>${currentModel.f1 > 85 ? 'Balance excelente' : currentModel.f1 > 70 ? 'Balance adecuado' : 'Desequilibrado'}</td>
+                </tr>
+            `;
+            
+            // Mostrar gráfico de rendimiento
+            const ctx = document.getElementById('modelPerformanceChart').getContext('2d');
+            if (charts.modelPerformance) {
+                charts.modelPerformance.destroy();
+            }
+            
+            charts.modelPerformance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Precisión', 'Precisión (P)', 'Sensibilidad (R)', 'Puntaje F1'],
+                    datasets: [{
+                        label: 'Rendimiento del Modelo',
+                        data: [
+                            parseFloat(currentModel.accuracy),
+                            parseFloat(currentModel.precision),
+                            parseFloat(currentModel.recall),
+                            parseFloat(currentModel.f1)
+                        ],
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100
+                        }
+                    }
+                }
+            });
+            
+            // Mostrar resultados y ocultar placeholder
+            modelResults.style.display = 'block';
+            modelPlaceholder.style.display = 'none';
+        }
+        
+        function viewModelDetails() {
+            if (!currentModel) return;
+            
+            document.getElementById('modelDetails').textContent = currentModel.details;
+            const modal = new bootstrap.Modal(document.getElementById('modelModal'));
+            modal.show();
+        }
+        
+        function copyModelToClipboard() {
+            const modelDetails = document.getElementById('modelDetails');
+            const range = document.createRange();
+            range.selectNode(modelDetails);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            
+            alert('Detalles del modelo copiados al portapapeles');
+        }
+        
+        function saveModel() {
+            if (!currentModel) return;
+            
+            // Simular guardado del modelo
+            const blob = new Blob([currentModel.details], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `modelo_${currentModel.algorithm}_${currentModel.targetAttribute}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert(`Modelo ${currentModel.algorithm} guardado exitosamente`);
+        }
+        
+        function exportResults() {
+            if (!datasetInfo || !currentModel) return;
+            
+            // Crear contenido para exportar
+            let content = `Resultados del Análisis - Weka Analyzer Pro\n`;
+            content += `============================================\n\n`;
+            content += `Dataset: ${datasetInfo.name}\n`;
+            content += `Instancias: ${datasetInfo.instances}\n`;
+            content += `Atributos: ${datasetInfo.attributes}\n\n`;
+            
+            content += `Modelo: ${currentModel.algorithm}\n`;
+            content += `Atributo objetivo: ${currentModel.targetAttribute}\n`;
+            content += `Precisión: ${currentModel.accuracy}%\n\n`;
+            
+            content += `Métricas:\n`;
+            content += `- Precisión: ${currentModel.accuracy}%\n`;
+            content += `- Precisión (Precision): ${currentModel.precision}%\n`;
+            content += `- Sensibilidad (Recall): ${currentModel.recall}%\n`;
+            content += `- Puntaje F1: ${currentModel.f1}%\n\n`;
+            
+            content += `Detalles del Modelo:\n`;
+            content += currentModel.details;
+            
+            // Crear y descargar archivo
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `resultados_${datasetInfo.name.replace('.csv', '')}_${currentModel.algorithm}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
