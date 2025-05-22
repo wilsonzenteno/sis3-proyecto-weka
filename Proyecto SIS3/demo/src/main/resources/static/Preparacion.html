@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Herramienta CSV para WEKA</title>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    
+    <style>
+    :root {
+        --primary: #6366f1;
+        --primary-light: #8183f4;
+        --secondary: #4f46e5;
+        --accent: #8b5cf6;
+        --dark: #1e1e2e;
+        --light: #f8fafc;
+        --lighter: #ffffff;
+        --success: #10b981;
+        --error: #ef4444;
+        --warning: #f59e0b;
+        --gray: #94a3b8;
+        --gray-light: #e2e8f0;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+        color: var(--dark);
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    /* Header Styles */
+    header {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        padding: 1rem 2rem;
+        box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
+    }
+
+    .nav-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 700;
+        color: white;
+        font-size: 1.25rem;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+    }
+
+    .nav-link {
+        color: rgba(255, 255, 255, 0.9);
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .nav-link:hover {
+        color: white;
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Main Content Styles */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(12px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), 
+                  inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+        padding: 2.5rem;
+        margin: 2rem auto;
+        max-width: 1200px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    }
+
+    .glass-panel:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12), 
+                  inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    }
+
+    /* Form Controls */
+    .controls-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--dark);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    input[type="file"],
+    input[type="number"],
+    input[type="text"],
+    select {
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--gray-light);
+        border-radius: 12px;
+        font-size: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.8);
+    }
+
+    input:focus, select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+    }
+
+    button {
+        padding: 1rem 2rem;
+        background: linear-gradient(135deg, var(--secondary), var(--primary));
+        color: white;
+        font-weight: 600;
+        border: none;
+        border-radius: 14px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 6px 15px rgba(79, 70, 229, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    button:hover {
+        background: linear-gradient(135deg, var(--secondary), var(--primary-light));
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+    }
+
+    /* Neural Network Visualization */
+    #network {
+        width: 100%;
+        height: 600px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 20px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+        margin: 1rem 0;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    .neuron {
+        stroke: var(--dark);
+        stroke-width: 1.5px;
+        transition: all 0.3s ease;
+    }
+
+    .input { fill: var(--success); }
+    .hidden { fill: var(--error); }
+    .output { fill: var(--warning); }
+
+    .link {
+        stroke: var(--gray);
+        stroke-width: 1px;
+        opacity: 0.6;
+        transition: all 0.3s ease;
+    }
+
+    .nlabel {
+        fill: white;
+        font-size: 11px;
+        text-anchor: middle;
+        dominant-baseline: central;
+        font-weight: 500;
+    }
+
+    /* Results Panels */
+    .info-panel {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 20px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--gray-light);
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        background: rgba(255, 255, 255, 0.6);
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--gray-light);
+    }
+
+    .info-item strong {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--secondary);
+    }
+
+    /* Metrics Section */
+    .metrics-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+
+    .metrics-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .metrics-table th, .metrics-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 2px solid var(--gray-light);
+    }
+
+    .metrics-table th {
+        background: var(--primary);
+        color: white;
+        font-weight: 600;
+    }
+
+    /* Confusion Matrix */
+    .confusion-matrix {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--gray-light);
+    }
+
+    .confusion-matrix table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    .confusion-matrix th, .confusion-matrix td {
+        padding: 0.75rem;
+        text-align: center;
+        border: 1px solid var(--gray-light);
+    }
+
+    .confusion-matrix th {
+        background: var(--primary);
+        color: white;
+        font-weight: 600;
+    }
+
+    .confusion-matrix td {
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Report Section */
+    .report-section {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--gray-light);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+        overflow-x: auto;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .nav-container {
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .glass-panel {
+            padding: 1.5rem;
+            margin: 1.5rem;
+            border-radius: 16px;
+        }
+
+        .controls-container {
+            grid-template-columns: 1fr;
+        }
+
+        #network {
+            height: 400px;
+        }
+
+        .metrics-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+</head>
+<body>
+    <header>
+            <nav class="nav-container">
+                <a href="#" class="logo">
+                    <i class="fas fa-chart-line logo-icon"></i>
+                    <span>404 not found</span>
+                </a>
+                <div class="nav-links">
+                    <a href="/index.html" class="nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Inicio</span>
+                    </a>
+                    <!--<a href="/weka1.html" class="nav-link active">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Análisis</span>
+                    </a>
+                -->
+                    <a href="/j48-tree.html" class="nav-link">
+                        <i class="fas fa-tree"></i>
+                        <span>J48</span>
+                    </a>
+                    <a href="/kmeans-chart.html" class="nav-link">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>K-Means</span>
+                    </a>
+                    <a href="/mlp-result-chart.html" class="nav-link">
+                        <i class="fas fa-brain"></i>
+                        <span>MLP</span>
+                    </a>
+                    <!--
+                    <a href="/UNION.html" class="nav-link">
+                        <i class="fas fa-database"></i>
+                        <span>UNION</span>
+                    </a>
+                    -->
+                    <a href="/Preparacion.html" class="nav-link active">
+                        <i class="fas fa-database"></i>
+                        <span>Preparacion</span>
+                    </a>
+                    
+                </div>
+            </nav>
+        </header>
+    <div class="container">
+        <h2>Herramienta CSV para WEKA</h2>
+        <div class="notification" id="notification">
+            <i class="fas fa-check-circle"></i>
+            <span id="notification-text"></span>
+        </div>
+
+        <div class="progress-bar" id="progress-bar"></div>
+
+        <div class="toolbar">
+            <label class="btn btn-primary">
+                <i class="fas fa-file-upload"></i>
+                Cargar CSV
+                <input type="file" id="csvFile" accept=".csv" hidden>
+            </label>
+
+            <div class="filter-controls">
+                <input type="text" id="filterInput" class="filter-input" 
+                       placeholder="Filtrar datos..." oninput="filterRows()">
+            </div>
+
+            <button class="btn btn-success" onclick="downloadCSV()">
+                <i class="fas fa-file-download"></i> Exportar para WEKA
+            </button>
+        </div>
+
+        <table id="csvTable"></table>
+    </div>
+
+<script>
+    let csvData = [];
+    const dom = {
+        csvFile: document.getElementById('csvFile'),
+        table: document.getElementById('csvTable'),
+        notification: document.getElementById('notification'),
+        notificationText: document.getElementById('notification-text'),
+        progressBar: document.getElementById('progress-bar')
+    };
+
+    const numberFormatter = (num) => {
+        if (Math.abs(num) >= 1e+21 || Math.abs(num) < 1e-6) {
+            return num.toLocaleString('fullwide', {
+                useGrouping: false,
+                maximumFractionDigits: 20
+            });
+        }
+        return num.toString();
+    };
+
+    dom.csvFile.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        showProgress(30);
+        Papa.parse(file, {
+            header: true,
+            dynamicTyping: false,
+            skipEmptyLines: true,
+            complete: (results) => {
+                csvData = results.data.map(row => 
+                    Object.entries(row).map(([key, value]) => 
+                        isNumeric(value) ? numberFormatter(Number(value)) : value
+                    )
+                );
+                
+                if (csvData.length > 0) {
+                    csvData = [Object.keys(results.data[0]), ...csvData];
+                }
+                
+                renderTable();
+                showProgress(100);
+                setTimeout(() => showProgress(0), 500);
+                showNotification('Archivo cargado correctamente');
+            },
+            error: (error) => {
+                showNotification(`Error: ${error.message}`, 'error');
+                showProgress(0);
+            }
+        });
+    });
+
+    function renderTable() {
+        dom.table.innerHTML = '';
+        if (csvData.length === 0) return;
+
+        const headerRow = document.createElement('tr');
+        csvData[0].forEach((header, colIndex) => {
+            const th = document.createElement('th');
+            th.textContent = header;
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-icon';
+            deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+            deleteBtn.onclick = () => deleteColumn(colIndex);
+            th.appendChild(deleteBtn);
+            
+            headerRow.appendChild(th);
+        });
+        
+        const actionsTh = document.createElement('th');
+        actionsTh.textContent = 'Acciones';
+        headerRow.appendChild(actionsTh);
+        dom.table.appendChild(headerRow);
+
+        csvData.slice(1).forEach((row, loopIndex) => {
+            const tr = document.createElement('tr');
+            row.forEach(cell => {
+                const td = document.createElement('td');
+                td.textContent = cell;
+                tr.appendChild(td);
+            });
+
+            const deleteTd = document.createElement('td');
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-icon';
+            deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+            deleteBtn.onclick = () => {
+                deleteRow(loopIndex + 1);
+                renderTable();
+            };
+            deleteTd.appendChild(deleteBtn);
+            tr.appendChild(deleteTd);
+
+            dom.table.appendChild(tr);
+        });
+    }
+
+    function deleteColumn(colIndex) {
+        csvData.forEach(row => row.splice(colIndex, 1));
+        renderTable();
+        showNotification('Columna eliminada correctamente');
+    }
+
+    function deleteRow(rowIndex) {
+        csvData.splice(rowIndex, 1);
+        renderTable();
+        showNotification('Fila eliminada correctamente');
+    }
+
+    function downloadCSV() {
+        if (csvData.length === 0) return;
+        
+        const headers = csvData[0];
+        const data = csvData.slice(1).map(row => {
+            const obj = {};
+            headers.forEach((header, index) => {
+                obj[header] = row[index];
+            });
+            return obj;
+        });
+
+        const csv = Papa.unparse({
+            fields: headers,
+            data: data
+        }, {
+            quotes: false,
+            skipEmptyLines: true,
+            delimiter: ',',
+            header: true
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `datos_weka_${new Date().toISOString().slice(0,10)}.csv`;
+        link.click();
+        showNotification('Archivo exportado correctamente');
+    }
+
+    function isNumeric(value) {
+        return !isNaN(value) && value !== null && value !== '' && !Array.isArray(value);
+    }
+
+    function showNotification(text, type = 'success') {
+        dom.notificationText.textContent = text;
+        dom.notification.style.backgroundColor = type === 'error' ? '#ef4444' : '#10b981';
+        dom.notification.style.display = 'flex';
+        setTimeout(() => dom.notification.style.display = 'none', 3000);
+    }
+
+    function showProgress(percent) {
+        dom.progressBar.style.width = `${percent}%`;
+    }
+
+    function filterRows() {
+        const filter = document.getElementById('filterInput').value.toLowerCase();
+        document.querySelectorAll('#csvTable tr:not(:first-child)').forEach(tr => {
+            tr.style.display = tr.textContent.toLowerCase().includes(filter) ? '' : 'none';
+        });
+    }
+</script>
+</body>
+</html>
+

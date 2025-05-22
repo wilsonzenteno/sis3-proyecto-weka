@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Means Clustering | WEKA Analyzer Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #8183f4;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #ec4899;
+            --dark: #1e1e2e;
+            --darker: #12121a;
+            --light: #f8fafc;
+            --lighter: #ffffff;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --gray: #94a3b8;
+            --gray-light: #e2e8f0;
+            --gradient-primary: linear-gradient(135deg, var(--primary), var(--secondary));
+            --gradient-accent: linear-gradient(135deg, var(--accent), var(--secondary));
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            min-height: 100vh;
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animaciones personalizadas */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+
+        /* Estructura principal */
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header mejorado */
+        header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 30px rgba(79, 70, 229, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeInDown 0.8s ease;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .logo:hover {
+            transform: translateY(-2px);
+        }
+
+        .logo-icon {
+            font-size: 1.6rem;
+            color: white;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.6rem 1.2rem;
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.95rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: -1;
+        }
+
+        .nav-link:hover {
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .nav-link:hover::before {
+            transform: translateY(0);
+        }
+
+        .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-link i {
+            font-size: 1.1rem;
+        }
+
+        /* Contenido principal */
+        main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Panel de vidrio mejorado */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1), 
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+            padding: 3rem;
+            margin: 2rem auto;
+            max-width: 900px;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+            pointer-events: none;
+            transition: all 0.8s ease;
+        }
+
+        .glass-panel:hover {
+            transform: translateY(-8px) scale(1.005);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+        }
+
+        .glass-panel:hover::before {
+            transform: translate(25%, 25%);
+        }
+
+        /* Sección de título */
+        .section-title {
+            color: var(--dark);
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            font-weight: 700;
+            position: relative;
+            display: inline-block;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: fadeInUp 0.8s ease 0.3s both;
+        }
+
+        .section-description {
+            color: var(--gray);
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+            max-width: 600px;
+            line-height: 1.7;
+            animation: fadeInUp 0.8s ease 0.4s both;
+        }
+
+        /* Botón de carga de archivos */
+        .file-upload {
+            position: relative;
+            margin: 2.5rem 0;
+            animation: fadeInUp 0.8s ease 0.5s both;
+        }
+
+        .file-upload input[type="file"] {
+            opacity: 0;
+            position: absolute;
+            width: 1px;
+            height: 1px;
+        }
+
+        .upload-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1.3rem 2.8rem;
+            background: var(--gradient-primary);
+            color: white;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+            font-weight: 600;
+            border: none;
+            font-size: 1.05rem;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .upload-label::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-accent);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .upload-label:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 12px 35px rgba(99, 102, 241, 0.4);
+        }
+
+        .upload-label:hover::before {
+            opacity: 1;
+        }
+
+        .upload-label:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        .upload-label i {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .upload-label:hover i {
+            transform: scale(1.2);
+        }
+
+        /* Información del archivo */
+        .file-info {
+            margin-top: 1.2rem;
+            font-size: 0.95rem;
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .file-info i {
+            color: var(--primary);
+        }
+
+        /* Controles de selección */
+        .controls-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+            animation: fadeInUp 0.8s ease 0.6s both;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .select-label {
+            display: block;
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 1rem;
+            padding-left: 0.5rem;
+        }
+
+        .styled-select {
+            width: 100%;
+            padding: 1.1rem 1.5rem;
+            border: 2px solid var(--gray-light);
+            border-radius: 14px;
+            background: white;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1.5rem center;
+            background-size: 1.2em;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            color: var(--dark);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+            cursor: pointer;
+        }
+
+        .styled-select:hover {
+            border-color: var(--primary-light);
+        }
+
+        .styled-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Botón de análisis */
+        .analyze-btn {
+            width: 100%;
+            padding: 1.4rem;
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 2.5rem;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            animation: fadeInUp 0.8s ease 0.7s both;
+        }
+
+        .analyze-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-accent);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 12px 30px rgba(79, 70, 229, 0.4);
+        }
+
+        .analyze-btn:hover::before {
+            opacity: 1;
+        }
+
+        .analyze-btn:active {
+            transform: translateY(1px) scale(0.98);
+            animation: glow 0.8s ease;
+        }
+
+        .analyze-btn i {
+            transition: transform 0.3s ease;
+        }
+
+        .analyze-btn:hover i {
+            transform: rotate(15deg) scale(1.2);
+        }
+
+        /* Contenedor del gráfico */
+        .chart-container {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-top: 3rem;
+            border: 2px solid var(--gray-light);
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.03);
+            background-color: #fcfcfd;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        #chartCanvas {
+            width: 100% !important;
+            height: auto !important;
+        }
+
+        /* Mensajes de estado */
+        .status-message {
+            padding: 1.2rem 1.5rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            display: none;
+            font-weight: 500;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .error {
+            background-color: #fff5f5;
+            color: var(--error);
+            border-left: 4px solid var(--error);
+            display: block;
+        }
+
+        .success {
+            background-color: #f0fdf4;
+            color: var(--success);
+            border-left: 4px solid var(--success);
+            display: block;
+        }
+
+        /* Overlay de carga */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            transition: opacity 0.4s ease;
+        }
+
+        .spinner {
+            width: 70px;
+            height: 70px;
+            border: 6px solid rgba(99, 102, 241, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1.2s linear infinite;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .spinner::after {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: -6px;
+            right: -6px;
+            bottom: -6px;
+            border: 6px solid transparent;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+            opacity: 0.7;
+        }
+
+        .loading-text {
+            color: var(--dark);
+            font-weight: 500;
+            margin-top: 1rem;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .loading-dots::after {
+            content: '.';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
+        }
+
+        /* Efectos de partículas */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(99, 102, 241, 0.3);
+            border-radius: 50%;
+            animation: float 6s infinite ease-in-out;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .glass-panel {
+                padding: 2rem 1.5rem;
+                margin: 1.5rem;
+                border-radius: 20px;
+            }
+            
+            .nav-container {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem 0;
+            }
+
+            .nav-links {
+                gap: 0.5rem;
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 100%;
+            }
+
+            .nav-link {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .section-title {
+                font-size: 1.6rem;
+            }
+
+            .section-description {
+                font-size: 0.95rem;
+            }
+
+            .upload-label {
+                padding: 1.1rem 2rem;
+                font-size: 0.95rem;
+            }
+
+            .controls-container {
+                grid-template-columns: 1fr;
+            }
+
+            .analyze-btn {
+                padding: 1.2rem;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .glass-panel {
+                padding: 1.8rem 1.2rem;
+                border-radius: 18px;
+            }
+
+            .section-title {
+                font-size: 1.4rem;
+            }
+
+            .upload-label {
+                padding: 1rem 1.5rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Animaciones */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <nav class="nav-container">
+                <a href="#" class="logo">
+                    <i class="fas fa-chart-line logo-icon"></i>
+                    <span>404 not found</span>
+                </a>
+                <div class="nav-links">
+                    <a href="/index.html" class="nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Inicio</span>
+                    </a>
+                    <!--
+                    <a href="/weka1.html" class="nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Análisis</span>
+                    </a>
+                    -->
+                    <a href="/j48-tree.html" class="nav-link">
+                        <i class="fas fa-tree"></i>
+                        <span>J48</span>
+                    </a>
+                    <a href="/kmeans-chart.html" class="nav-link active">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>K-Means</span>
+                    </a>
+                    <a href="/mlp-result-chart.html" class="nav-link">
+                        <i class="fas fa-brain"></i>
+                        <span>MLP</span>
+                    </a>
+                    <!--
+                    <a href="/UNION.html" class="nav-link">
+                        <i class="fas fa-database"></i>
+                        <span>UNION</span>
+                    </a>
+                    -->
+                    <a href="/Preparacion.html" class="nav-link">
+                        <i class="fas fa-database"></i>
+                        <span>Preparacion</span>
+                    </a>
+                </div>
+            </nav>
+        </header>
+
+        <main>
+            <div class="glass-panel">
+                <h2 class="section-title">Clustering con K-Means</h2>
+                <p class="section-description">Visualiza tus datos agrupados mediante el algoritmo K-Means. Selecciona un archivo CSV o ARFF y elige los atributos para los ejes.</p>
+                
+                <div class="file-upload">
+                    <input type="file" id="fileInput" accept=".csv,.arff">
+                    <label for="fileInput" class="upload-label">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        Seleccionar Archivo
+                    </label>
+                    <div id="fileName" class="file-info" style="display: none;">
+                        <i class="fas fa-file-alt"></i>
+                        <span id="file-name-text"></span>
+                    </div>
+                </div>
+                
+                <div id="statusMessage" class="status-message"></div>
+                
+                <div class="controls-container">
+                    <div class="control-group">
+                        <label for="xAttr" class="select-label">Atributo para el eje X</label>
+                        <select id="xAttr" class="styled-select"></select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="yAttr" class="select-label">Atributo para el eje Y</label>
+                        <select id="yAttr" class="styled-select"></select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="kInput" class="select-label">Número de Clusters (k)</label>
+                        <input type="number" id="kInput" value="3" min="1" class="styled-select">
+                    </div>
+                </div>
+                
+                <button class="analyze-btn" onclick="analizar()">
+                    <i class="fas fa-chart-scatter"></i> Generar Gráfico
+                </button>
+                
+                <div class="chart-container">
+                    <canvas id="chartCanvas" width="800" height="600"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Procesando datos<span class="loading-dots"></span></div>
+    </div>
+
+    <div class="particles" id="particles"></div>
+
+    <script>
+        let fileContent, chart;
+
+        document.getElementById("fileInput").addEventListener("change", function () {
+            const file = this.files[0];
+            if (!file) return;
+
+            // Mostrar nombre del archivo
+            const fileNameText = document.getElementById("file-name-text");
+            fileNameText.textContent = file.name.length > 30 ? 
+                file.name.substring(0, 15) + '...' + file.name.substring(file.name.length - 10) : 
+                file.name;
+            
+            document.getElementById("fileName").style.display = 'flex';
+            document.getElementById("fileName").style.animation = 'fadeInUp 0.6s ease';
+            
+            const xSelect = document.getElementById("xAttr");
+            const ySelect = document.getElementById("yAttr");
+            xSelect.innerHTML = "";
+            ySelect.innerHTML = "";
+            fileContent = file;
+
+            if (file.name.endsWith(".csv")) {
+                Papa.parse(file, {
+                    complete: function (results) {
+                        const headers = results.data[0];
+                        headers.forEach((h, i) => {
+                            xSelect.appendChild(new Option(h, i));
+                            ySelect.appendChild(new Option(h, i));
+                        });
+                        
+                        showStatus("Archivo CSV cargado correctamente. Selecciona los atributos para los ejes.", "success");
+                    },
+                    error: function() {
+                        showStatus("Error al procesar el archivo CSV.", "error");
+                    }
+                });
+            } else {
+                // Para ARFF, usar nombres genéricos
+                for (let i = 0; i < 20; i++) {
+                    const name = "Atributo " + (i + 1);
+                    xSelect.appendChild(new Option(name, i));
+                    ySelect.appendChild(new Option(name, i));
+                }
+                showStatus("Archivo ARFF cargado. Selecciona los índices de los atributos.", "success");
+            }
+        });
+
+        function showStatus(message, type) {
+            const statusElement = document.getElementById("statusMessage");
+            statusElement.textContent = message;
+            statusElement.className = `status-message ${type}`;
+            statusElement.style.animation = 'none';
+            void statusElement.offsetWidth;
+            statusElement.style.animation = 'fadeIn 0.6s ease';
+        }
+
+        function analizar() {
+            const xAttr = document.getElementById("xAttr").value;
+            const yAttr = document.getElementById("yAttr").value;
+            const k = document.getElementById("kInput").value;
+
+            if (!fileContent) {
+                showStatus("Por favor, selecciona un archivo primero.", "error");
+                return;
+            }
+
+            showStatus("Procesando datos y generando clusters...", "success");
+            
+            // Mostrar loading
+            document.getElementById("loading").style.opacity = '0';
+            document.getElementById("loading").style.display = 'flex';
+            setTimeout(() => {
+                document.getElementById("loading").style.opacity = '1';
+            }, 10);
+
+            const formData = new FormData();
+            formData.append("file", fileContent);
+            formData.append("xAttr", xAttr);
+            formData.append("yAttr", yAttr);
+            formData.append("k", k);
+
+            fetch("http://localhost:8080/api/analyze/kmeans-plot", {
+                method: "POST",
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data[0]?.error) {
+                        showStatus("Error del servidor: " + data[0].error, "error");
+                        return;
+                    }
+                    renderChart(data);
+                    showStatus("Gráfico generado correctamente. Visualizando clusters.", "success");
+                })
+                .catch(err => {
+                    showStatus("Error de red: " + err, "error");
+                })
+                .finally(() => {
+                    // Ocultar loading
+                    document.getElementById("loading").style.opacity = '1';
+                    setTimeout(() => {
+                        document.getElementById("loading").style.opacity = '0';
+                        setTimeout(() => {
+                            document.getElementById("loading").style.display = 'none';
+                        }, 300);
+                    }, 500);
+                });
+        }
+
+        function renderChart(data) {
+            if (chart) chart.destroy();
+
+            const clusters = {};
+            data.forEach(p => {
+                if (!clusters[p.cluster]) clusters[p.cluster] = [];
+                clusters[p.cluster].push({ x: p.x, y: p.y });
+            });
+
+            const datasets = Object.entries(clusters).map(([clusterId, puntos]) => ({
+                label: "Cluster " + clusterId,
+                data: puntos,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                backgroundColor: getColor(clusterId),
+                borderColor: '#fff',
+                borderWidth: 1
+            }));
+
+            const ctx = document.getElementById("chartCanvas").getContext("2d");
+            chart = new Chart(ctx, {
+                type: "scatter",
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: "top",
+                            labels: {
+                                boxWidth: 12,
+                                padding: 20,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        title: { 
+                            display: true, 
+                            text: "Visualización de Clusters K-Means",
+                            font: {
+                                size: 16
+                            },
+                            padding: {
+                                top: 10,
+                                bottom: 20
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            titleFont: {
+                                size: 14
+                            },
+                            bodyFont: {
+                                size: 12
+                            },
+                            padding: 10,
+                            cornerRadius: 4
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            title: { 
+                                display: true, 
+                                text: "Eje X",
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        y: { 
+                            title: { 
+                                display: true, 
+                                text: "Eje Y",
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000
+                    }
+                }
+            });
+        }
+
+        function getColor(index) {
+            const colors = [
+                '#4361ee', '#3a0ca3', '#7209b7', '#f72585', 
+                '#4895ef', '#4cc9f0', '#2ec4b6', '#2b9348',
+                '#80b918', '#d4d700', '#eeef20', '#ffbe0b',
+                '#fb5607', '#ff006e', '#8338ec'
+            ];
+            return colors[index % colors.length];
+        }
+
+        // Crear partículas de fondo
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = window.innerWidth < 768 ? 20 : 40;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // Tamaño aleatorio entre 2px y 8px
+                const size = Math.random() * 6 + 2;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Posición aleatoria
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                
+                // Opacidad aleatoria
+                particle.style.opacity = Math.random() * 0.4 + 0.1;
+                
+                // Animación con duración y delay aleatorios
+                const duration = Math.random() * 10 + 10;
+                const delay = Math.random() * 5;
+                particle.style.animation = `float ${duration}s ${delay}s infinite ease-in-out`;
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Inicializar partículas al cargar la página
+        window.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+            
+            // Agregar animación de entrada a los elementos
+            const elements = document.querySelectorAll('.glass-panel, .section-title, .section-description, .file-upload, .controls-container, .analyze-btn, .chart-container');
+            elements.forEach((el, index) => {
+                el.style.animationDelay = `${index * 0.1}s`;
+            });
+        });
+    </script>
+</body>
+</html>
